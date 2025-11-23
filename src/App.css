@@ -84,6 +84,18 @@ h2,
   transition: color 200ms ease;
 }
 
+.nav-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.nav-chinese-char {
+  color: #dc2626;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
 .nav a:hover,
 .nav a.active {
   color: #f4efe8;
@@ -109,6 +121,8 @@ h2,
 .hero-content {
   max-width: 840px;
   padding: 4rem 0 2rem;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .eyebrow {
@@ -128,6 +142,7 @@ h2,
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .primary-btn,
@@ -512,6 +527,13 @@ section {
   font-size: 0.95rem;
 }
 
+.tasting-card .mini-title {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #f4efe8;
+}
+
 .muted {
   color: rgba(244, 239, 232, 0.6);
 }
@@ -846,6 +868,9 @@ section {
 
 .footer-links a {
   color: rgba(244, 239, 232, 0.7);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .footer-links a.active {

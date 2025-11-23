@@ -24,22 +24,22 @@ const heroSlides = [
 
 const tastingJourneys = [
   {
-    title: 'Krönika XX',
-    price: 'SEK 2 450',
+    title: 'Tokyo Street',
+    price: 'SEK 1 099',
     description:
       'Tjugo serveringar som kartlägger Peráns svensk-kinesiska arv med infusioner, teceremonier och ögonblick vid vagn.',
     details: 'Kväll | Ons–Sön | 17.30 & 20.30',
   },
   {
-    title: 'Merkuriuslunch',
-    price: 'SEK 1 250',
+    title: 'Bangkok Heat',
+    price: 'SEK 899',
     description:
       'En ljusare sittning med fokus på skaldjur från Stockholms skärgård, syrliga äpplen och glödgrillade gröna blad.',
     details: 'Vardagar | 12.00',
   },
   {
-    title: 'Opiumbarens parning',
-    price: 'SEK 950',
+    title: 'Asian Fusion Luxe',
+    price: 'SEK 1 299',
     description:
       'Sju lågalcoholiska infusioner, nordiska teer och lagrade saké som följer Krönikans dramaturgi.',
     details: 'Tillval | Förbokas',
@@ -693,6 +693,7 @@ function App() {
             {navLinks.map((link) => (
               <NavLink key={link.to} to={link.to}>
                 {link.label}
+                <span className="nav-chinese-char">下</span>
               </NavLink>
             ))}
           </div>
@@ -787,6 +788,7 @@ function App() {
           {navLinks.map((link) => (
             <NavLink key={link.to} to={link.to}>
               {link.label}
+              <span className="nav-chinese-char">下</span>
             </NavLink>
           ))}
         </div>
