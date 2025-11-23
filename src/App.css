@@ -856,6 +856,312 @@ section {
   text-align: center;
 }
 
+.book-page-wrapper {
+  position: relative;
+  min-height: 100vh;
+}
+
+.booking-form-section {
+  padding: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 4vw, 4rem);
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.booking-form {
+  background: rgba(5, 5, 5, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(244, 239, 232, 0.2);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.booking-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.booking-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.booking-form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.booking-form-group label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(244, 239, 232, 0.8);
+  font-weight: 500;
+}
+
+.booking-form-group input,
+.booking-form-group select,
+.booking-form-group textarea {
+  background: rgba(5, 5, 5, 0.6);
+  border: 1px solid rgba(244, 239, 232, 0.15);
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+  color: #f4efe8;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+
+.booking-form-group input:focus,
+.booking-form-group select:focus,
+.booking-form-group textarea:focus {
+  outline: none;
+  border-color: #dc2626;
+  background: rgba(5, 5, 5, 0.8);
+}
+
+.booking-form-group input::placeholder,
+.booking-form-group textarea::placeholder {
+  color: rgba(244, 239, 232, 0.4);
+}
+
+.booking-form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.radio-group {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: #f4efe8;
+  font-weight: normal;
+}
+
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #dc2626;
+}
+
+.booking-submit {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 1rem 2rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .booking-form {
+    padding: 1.5rem;
+  }
+
+  .booking-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.calendar {
+  background: rgba(5, 5, 5, 0.4);
+  border: 1px solid rgba(244, 239, 232, 0.1);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.calendar-nav-btn {
+  background: rgba(244, 239, 232, 0.05);
+  border: 1px solid rgba(244, 239, 232, 0.15);
+  border-radius: 0.5rem;
+  color: #f4efe8;
+  font-size: 1.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 200ms ease;
+  padding: 0;
+}
+
+.calendar-nav-btn:hover:not(:disabled) {
+  background: rgba(244, 239, 232, 0.1);
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.calendar-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.calendar-month-year {
+  font-family: 'Playfair Display', 'Times New Roman', serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f4efe8;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(244, 239, 232, 0.6);
+  font-weight: 500;
+  padding: 0.5rem 0;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  background: rgba(244, 239, 232, 0.03);
+  border: 1px solid rgba(244, 239, 232, 0.1);
+  border-radius: 0.5rem;
+  color: #f4efe8;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 200ms ease;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-day.empty {
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+
+.calendar-day.past {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: rgba(244, 239, 232, 0.02);
+}
+
+.calendar-day.booked {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.4);
+  color: rgba(244, 239, 232, 0.5);
+  cursor: not-allowed;
+  position: relative;
+}
+
+.calendar-day.booked::after {
+  content: '✕';
+  position: absolute;
+  font-size: 0.7rem;
+  color: rgba(220, 38, 38, 0.6);
+}
+
+.calendar-day.available:hover {
+  background: rgba(244, 239, 232, 0.1);
+  border-color: rgba(244, 239, 232, 0.3);
+  transform: scale(1.05);
+}
+
+.calendar-day.selected {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #f4efe8;
+  font-weight: 600;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(244, 239, 232, 0.1);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  color: rgba(244, 239, 232, 0.7);
+}
+
+.legend-color {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(244, 239, 232, 0.2);
+}
+
+.legend-color.available {
+  background: rgba(244, 239, 232, 0.03);
+}
+
+.legend-color.booked {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.legend-color.selected {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .calendar {
+    padding: 1rem;
+  }
+
+  .calendar-day {
+    font-size: 0.8rem;
+  }
+
+  .calendar-legend {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
 .footer {
   border-top: 1px solid rgba(244, 239, 232, 0.08);
   padding: 2rem clamp(1.5rem, 4vw, 4rem) 3rem;
@@ -897,6 +1203,10 @@ section {
   padding: 3rem 0 1rem;
   border-bottom: 1px solid rgba(244, 239, 232, 0.1);
   margin-bottom: 3rem;
+  text-align: center;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .page-hero h1 {
