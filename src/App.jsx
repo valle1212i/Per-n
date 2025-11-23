@@ -687,7 +687,7 @@ function App() {
       <header className={`site-header ${isScrolled ? 'scrolled' : ''}`}>
         <nav className="nav">
           <NavLink to="/" className="mark">
-            Per<span className="accent">á</span>n
+            <img src="/peran-logo-new.png" alt="Perán" className="logo-image" />
           </NavLink>
           <div className="nav-links">
             {navLinks.map((link) => (
@@ -779,7 +779,7 @@ function App() {
 
       <footer className="footer">
         <div>
-          <p className="mark">Per<span className="accent">á</span>n</p>
+          <img src="/peran-logo-new.png" alt="Perán" className="logo-image footer-logo" />
           <p>Kornhamnstorg 57, Gamla stan, Stockholm · Townhouse på sex våningar</p>
           <p className="muted">© {new Date().getFullYear()} Perán House. Formad av minnen.</p>
         </div>

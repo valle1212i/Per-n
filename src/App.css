@@ -27,6 +27,21 @@ h2,
   font-family: 'Playfair Display', 'Times New Roman', serif;
   font-weight: 600;
   letter-spacing: 0.02em;
+  display: inline-block;
+  line-height: 1;
+}
+
+.logo-image {
+  height: clamp(2.5rem, 5vw, 4rem);
+  width: auto;
+  object-fit: cover;
+  object-position: center;
+  max-width: none;
+}
+
+.footer-logo {
+  height: clamp(4rem, 6vw, 6rem);
+  margin-bottom: 0.5rem;
 }
 
 .site-header {
@@ -55,8 +70,9 @@ h2,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem clamp(1.5rem, 4vw, 4rem);
+  padding: 0.75rem clamp(1.5rem, 4vw, 4rem);
   gap: 1.5rem;
+  min-height: auto;
 }
 
 .mark {
