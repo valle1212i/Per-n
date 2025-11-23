@@ -26,3 +26,4 @@ function ConsentBanner({ visible, onAccept, onDecline }) {
 
 export default ConsentBanner
 
+

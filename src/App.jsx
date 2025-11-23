@@ -678,6 +678,7 @@ function App() {
             <div className="menu-modal-images">
               <img src="/menuperan.png" alt="Menu" className="menu-modal-image" />
               <img src="/vinmeny.png" alt="Vinmeny" className="menu-modal-image" />
+              <img src="/desserterpiuc.png" alt="Desserter" className="menu-modal-image" />
             </div>
           </div>
         </div>
