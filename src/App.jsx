@@ -1,22 +1,24 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Routes, Route, Link, useLocation } from 'react-router-dom'
 import './App.css'
+import ConsentBanner from './components/ConsentBanner'
+import { useGeoTracking } from './hooks/useGeoTracking'
 
 const heroSlides = [
   {
     title: 'Celestial buljong',
     caption: 'Släktens fond sjuder över kol i arton timmar.',
-    image: '/media/hero-1.jpg',
+    image: '/moredish.png',
   },
   {
     title: 'Gamla stan skymning',
     caption: 'Townhouse-fasaden lyser i dimman från gränderna.',
-    image: '/media/hero-2.jpg',
+    image: '/onedesih.png',
   },
   {
     title: 'Opiumblomma',
     caption: 'Kronblad konserverade i lagrad Pu-erh.',
-    image: '/media/hero-3.jpg',
+    image: '/cocktail.png',
   },
 ]
 
@@ -45,9 +47,9 @@ const tastingJourneys = [
 ]
 
 const tastingHeroImages = [
-  '/media/hero-4.jpg',
-  '/media/hero-5.jpg',
-  '/media/hero-6.jpg',
+  '/peodpleeating.png',
+  '/avsmakning.png',
+  '/winetastingpic.png',
 ]
 
 const tastingPackages = [
@@ -61,7 +63,7 @@ const tastingPackages = [
   },
   {
     title: 'Krönika XX – Fullständig upplevelse',
-    image: '/media/package-2.jpg',
+    image: '/firefood.png',
     description:
       'Njut av vår signaturmeny med tjugo serveringar, infusioner, teceremonier och ögonblick vid vagn. Inkluderar middag och välkomstdrink. Boka för en eller flera gäster.',
     cta: 'Se paket',
@@ -82,19 +84,19 @@ const experiences = [
     title: 'Sinnenas bord',
     detail:
       'Sex platser vid utvecklingsköket där kockarna berättar varje rörelse. Interaktiv uppläggning och inédit serveringar.',
-    image: '/media/hero-1.jpg',
+    image: '/vegetables.png',
   },
   {
     title: 'Husets ande',
     detail:
       'En guidad promenad genom den återställda örtapoteksvåningen, arkiven och takateljén innan middagen börjar.',
-    image: '/media/hero-2.jpg',
+    image: '/kitchenpic.png',
   },
   {
     title: 'Nattlig vinyl',
     detail:
       'Opium Bar övergår till ett nattligt lyssningsrum med stockholmska vinylgrävare och digestifer till 01.00.',
-    image: '/media/hero-3.jpg',
+    image: '/gamlastan.png',
   },
 ]
 
@@ -102,12 +104,12 @@ const galleryPieces = [
   {
     label: 'Minne 04',
     title: 'Lotus + ostronrök',
-    image: '/media/gallery-1.jpg',
+    image: '/gyoza.png',
   },
   {
     label: 'Minne 09',
     title: 'Anka glaserad med honung från Roslagen',
-    image: '/media/gallery-2.jpg',
+    image: '/waguysteak.png',
   },
   {
     label: 'Minne 12',
@@ -117,7 +119,7 @@ const galleryPieces = [
   {
     label: 'Minne 17',
     title: 'Bärnstensbuljong + liljelök',
-    image: '/media/gallery-4.jpg',
+    image: '/wokpanfire.png',
   },
 ]
 
@@ -158,8 +160,8 @@ const philosophyEvents = [
     link: '#',
   },
   {
-    title: 'Lokala gillen',
-    image: '/media/gallery-1.jpg',
+    title: 'Vår stolta kock',
+    image: '/asianchefsawe.png',
     description:
       'Månadsvisa möten med våra producenter: västkustens ostronodlare, uppländska risbönder och regenerativa andgårdar. Smakning och samtal om hållbarhet.',
     cta: 'Läs mer',
@@ -175,7 +177,7 @@ const navLinks = [
   { to: '/reserve', label: 'Reservationer' },
 ]
 
-const HeroSection = () => (
+const HeroSection = ({ onMenuClick }) => (
   <section className="hero" data-reveal>
     <div className="hero-content">
       <p className="eyebrow">Progressiv svensk–kinesisk</p>
@@ -186,16 +188,15 @@ const HeroSection = () => (
       </p>
       <div className="cta-row">
         <Link className="primary-btn" to="/book">
-          Boka Krönika XX
+          Boka
         </Link>
-        <a
+        <button
           className="text-btn"
-          href="https://drive.google.com/peran-beverage-atlas"
-          target="_blank"
-          rel="noreferrer"
+          onClick={onMenuClick}
+          type="button"
         >
-          Dryckesatlas
-        </a>
+          Menu
+        </button>
       </div>
     </div>
     <div className="hero-slides">
@@ -215,13 +216,13 @@ const HeroSection = () => (
 const SplitSection = () => (
   <section className="split-section" data-reveal>
     <Link to="/philosophy" className="split-card">
-      <div className="split-image" style={{ backgroundImage: 'url(/media/hero-2.jpg)' }} />
+      <div className="split-image" style={{ backgroundImage: 'url(/restarauntpic.png)' }} />
       <div className="split-overlay">
         <h2 className="split-title">Vår berättelse</h2>
       </div>
     </Link>
     <Link to="/tasting" className="split-card">
-      <div className="split-image" style={{ backgroundImage: 'url(/media/hero-1.jpg)' }} />
+      <div className="split-image" style={{ backgroundImage: 'url(/asiandish.png)' }} />
       <div className="split-overlay">
         <h2 className="split-title">Köket</h2>
       </div>
@@ -231,26 +232,32 @@ const SplitSection = () => (
 
 const StorySection = () => (
   <section className="story" data-reveal>
-    <div className="story-intro">
-      <p className="eyebrow">Fem element · Fem sinnen · Tjugo minnen</p>
-      <h2>En filosofi rotad i örtarv och Stockholms nattliga puls.</h2>
+    <div className="story-hero">
+      <div className="story-hero-bg" style={{ backgroundImage: 'url(/marketinchina.png)' }} />
+      <div className="story-hero-overlay" />
+      <div className="story-hero-content">
+        <p className="eyebrow">Fem element · Fem sinnen · Tjugo minnen</p>
+        <h2>En filosofi rotad i örtarv och Stockholms nattliga puls.</h2>
+      </div>
+    </div>
+    <div className="story-content">
       <p>
         Kökschef Araya bär fjärde generationens apotekarnycklar. Perán flätar kol, ånga, fermentation och ljud för att
         koreografera minnesbilder. Townhouset rymmer konstnärliga interventioner, arkiv och stilla te-rum.
       </p>
-    </div>
-    <div className="story-grid">
-      <div>
-        <p className="mini-title">Elementens syntax</p>
-        <p>Serveringarna växlar mellan jord, vatten, eld, metall och trä – översatta till textur, hetta eller doft.</p>
-      </div>
-      <div>
-        <p className="mini-title">Krönikeskrift</p>
-        <p>Menyerna liknar en resedagbok med kort prosa, arkivfoton och bläckskisser.</p>
-      </div>
-      <div>
-        <p className="mini-title">Lokala gillen</p>
-        <p>Råvaror hämtas från skärgårdens saltbäddar, västkustens tångodlare och en ankgård vi driver i Uppland.</p>
+      <div className="story-grid">
+        <div>
+          <p className="mini-title">Elementens syntax</p>
+          <p>Serveringarna växlar mellan jord, vatten, eld, metall och trä – översatta till textur, hetta eller doft.</p>
+        </div>
+        <div>
+          <p className="mini-title">Krönikeskrift</p>
+          <p>Menyerna liknar en resedagbok med kort prosa, arkivfoton och bläckskisser.</p>
+        </div>
+        <div>
+          <p className="mini-title">Lokala gillen</p>
+          <p>Råvaror hämtas från skärgårdens saltbäddar, västkustens tångodlare och en ankgård vi driver i Uppland.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -258,7 +265,8 @@ const StorySection = () => (
 
 const PhilosophyMainSection = () => (
   <section className="philosophy-main" data-reveal>
-    <div className="philosophy-stamp">Perán</div>
+    <div className="philosophy-main-bg" style={{ backgroundImage: 'url(/drawedkitchen.png)' }} />
+    <div className="philosophy-main-overlay" />
     <div className="philosophy-main-content">
       <h2 className="philosophy-main-title">Filosofi</h2>
       <p className="philosophy-main-subtitle">Smakresa för sinnena</p>
@@ -473,9 +481,9 @@ const PageHero = ({ eyebrow, title, copy }) => (
   </section>
 )
 
-const HomePage = () => (
+const HomePage = ({ onMenuClick }) => (
   <>
-    <HeroSection />
+    <HeroSection onMenuClick={onMenuClick} />
     <StorySection />
     <TastingSection />
     <SplitSection />
@@ -565,10 +573,33 @@ const NotFoundPage = () => (
 
 function App() {
   const location = useLocation()
+  const [hasConsent, setHasConsent] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('analytics_consent') === 'granted'
+  })
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('analytics_consent') !== null
+  })
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  useGeoTracking(hasConsent)
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [location.pathname])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // Check initial state
+
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     const elements = document.querySelectorAll('[data-reveal]')
@@ -588,12 +619,29 @@ function App() {
     return () => observer.disconnect()
   }, [location.pathname])
 
+  const handleAcceptConsent = () => {
+    localStorage.setItem('analytics_consent', 'granted')
+    setHasConsent(true)
+    setBannerDismissed(true)
+  }
+
+  const handleDeclineConsent = () => {
+    localStorage.setItem('analytics_consent', 'denied')
+    setHasConsent(false)
+    setBannerDismissed(true)
+  }
+
   return (
     <div className="peran-site">
-      <header className="site-header">
+      <ConsentBanner
+        visible={!hasConsent && !bannerDismissed}
+        onAccept={handleAcceptConsent}
+        onDecline={handleDeclineConsent}
+      />
+      <header className={`site-header ${isScrolled ? 'scrolled' : ''}`}>
         <nav className="nav">
           <NavLink to="/" className="mark">
-            Perán
+            Per<span className="accent">á</span>n
           </NavLink>
           <div className="nav-links">
             {navLinks.map((link) => (
@@ -610,7 +658,7 @@ function App() {
 
       <main>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<HomePage onMenuClick={() => setIsMenuOpen(true)} />} />
           <Route path="/philosophy" element={<PhilosophyPage />} />
           <Route path="/tasting" element={<TastingPage />} />
           <Route path="/experiences" element={<ExperiencesPage />} />
@@ -621,9 +669,23 @@ function App() {
         </Routes>
       </main>
 
+      {isMenuOpen && (
+        <div className="menu-modal" onClick={() => setIsMenuOpen(false)}>
+          <div className="menu-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="menu-modal-close" onClick={() => setIsMenuOpen(false)}>
+              ×
+            </button>
+            <div className="menu-modal-images">
+              <img src="/menuperan.png" alt="Menu" className="menu-modal-image" />
+              <img src="/vinmeny.png" alt="Vinmeny" className="menu-modal-image" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <footer className="footer">
         <div>
-          <p className="mark">Perán</p>
+          <p className="mark">Per<span className="accent">á</span>n</p>
           <p>Kornhamnstorg 57, Gamla stan, Stockholm · Townhouse på sex våningar</p>
           <p className="muted">© {new Date().getFullYear()} Perán House. Formad av minnen.</p>
         </div>
