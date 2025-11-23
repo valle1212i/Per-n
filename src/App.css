@@ -967,6 +967,13 @@ section {
   object-fit: contain;
   border-radius: 0.5rem;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.menu-modal-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6);
 }
 
 .menu-modal-close {
@@ -991,6 +998,115 @@ section {
 .menu-modal-close:hover {
   color: #dc2626;
   transform: scale(1.1);
+}
+
+.menu-fullsize-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 95vw;
+  max-height: 90vh;
+}
+
+.menu-fullsize-image {
+  width: 100%;
+  height: auto;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.menu-nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(5, 5, 5, 0.8);
+  border: 2px solid rgba(244, 239, 232, 0.3);
+  color: #f4efe8;
+  font-size: 4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 1rem 1.5rem;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms ease;
+  z-index: 10;
+  border-radius: 0.5rem;
+  user-select: none;
+}
+
+.menu-nav-arrow:hover {
+  background: rgba(5, 5, 5, 0.95);
+  border-color: #dc2626;
+  color: #dc2626;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.menu-nav-arrow-prev {
+  left: 1rem;
+}
+
+.menu-nav-arrow-next {
+  right: 1rem;
+}
+
+.menu-fullsize-close {
+  position: absolute;
+  top: -2.5rem;
+  right: 0;
+  background: none;
+  border: none;
+  color: #f4efe8;
+  font-size: 3rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 200ms ease, transform 200ms ease;
+  z-index: 10;
+}
+
+.menu-fullsize-close:hover {
+  color: #dc2626;
+  transform: scale(1.1);
+}
+
+.menu-fullsize-counter {
+  position: absolute;
+  bottom: -2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #f4efe8;
+  font-size: 1rem;
+  font-weight: 500;
+  background: rgba(5, 5, 5, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .menu-nav-arrow {
+    font-size: 3rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .menu-nav-arrow-prev {
+    left: 0.5rem;
+  }
+
+  .menu-nav-arrow-next {
+    right: 0.5rem;
+  }
 }
 
 @media (max-width: 900px) {

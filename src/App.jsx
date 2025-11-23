@@ -583,6 +583,15 @@ function App() {
   })
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [selectedMenuIndex, setSelectedMenuIndex] = useState(null)
+
+  const menuImages = [
+    { src: '/menuperan.png', alt: 'Menu' },
+    { src: '/vinmeny.png', alt: 'Vinmeny' },
+    { src: '/desserterpiuc.png', alt: 'Desserter' },
+    { src: '/smaratter.png', alt: 'Smårätter' },
+    { src: '/olmeny.png', alt: 'Ölmeny' }
+  ]
 
   useGeoTracking(hasConsent)
 
@@ -631,6 +640,43 @@ function App() {
     setBannerDismissed(true)
   }
 
+  const handleMenuImageClick = (index) => {
+    setSelectedMenuIndex(index)
+  }
+
+  const handleCloseFullSize = () => {
+    setSelectedMenuIndex(null)
+  }
+
+  const handleNextMenu = (e) => {
+    e.stopPropagation()
+    setSelectedMenuIndex((prev) => (prev + 1) % menuImages.length)
+  }
+
+  const handlePrevMenu = (e) => {
+    e.stopPropagation()
+    setSelectedMenuIndex((prev) => (prev - 1 + menuImages.length) % menuImages.length)
+  }
+
+  useEffect(() => {
+    if (selectedMenuIndex === null) return
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        setSelectedMenuIndex((prev) => (prev + 1) % menuImages.length)
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        setSelectedMenuIndex((prev) => (prev - 1 + menuImages.length) % menuImages.length)
+      } else if (e.key === 'Escape') {
+        setSelectedMenuIndex(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedMenuIndex, menuImages.length])
+
   return (
     <div className="peran-site">
       <ConsentBanner
@@ -670,18 +716,62 @@ function App() {
       </main>
 
       {isMenuOpen && (
-        <div className="menu-modal" onClick={() => setIsMenuOpen(false)}>
+        <div className="menu-modal" onClick={() => {
+          setIsMenuOpen(false)
+          setSelectedMenuIndex(null)
+        }}>
           <div className="menu-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="menu-modal-close" onClick={() => setIsMenuOpen(false)}>
+            <button className="menu-modal-close" onClick={() => {
+              setIsMenuOpen(false)
+              setSelectedMenuIndex(null)
+            }}>
               ×
             </button>
-            <div className="menu-modal-images">
-              <img src="/menuperan.png" alt="Menu" className="menu-modal-image" />
-              <img src="/vinmeny.png" alt="Vinmeny" className="menu-modal-image" />
-              <img src="/desserterpiuc.png" alt="Desserter" className="menu-modal-image" />
-              <img src="/smaratter.png" alt="Smårätter" className="menu-modal-image" />
-              <img src="/olmeny.png" alt="Ölmeny" className="menu-modal-image" />
-            </div>
+            {selectedMenuIndex === null ? (
+              <div className="menu-modal-images">
+                {menuImages.map((menu, index) => (
+                  <img
+                    key={index}
+                    src={menu.src}
+                    alt={menu.alt}
+                    className="menu-modal-image"
+                    onClick={() => handleMenuImageClick(index)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="menu-fullsize-container">
+                <button
+                  className="menu-nav-arrow menu-nav-arrow-prev"
+                  onClick={handlePrevMenu}
+                  aria-label="Previous menu"
+                >
+                  ‹
+                </button>
+                <img
+                  src={menuImages[selectedMenuIndex].src}
+                  alt={menuImages[selectedMenuIndex].alt}
+                  className="menu-fullsize-image"
+                />
+                <button
+                  className="menu-nav-arrow menu-nav-arrow-next"
+                  onClick={handleNextMenu}
+                  aria-label="Next menu"
+                >
+                  ›
+                </button>
+                <button
+                  className="menu-fullsize-close"
+                  onClick={handleCloseFullSize}
+                  aria-label="Close full size"
+                >
+                  ×
+                </button>
+                <div className="menu-fullsize-counter">
+                  {selectedMenuIndex + 1} / {menuImages.length}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
