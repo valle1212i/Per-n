@@ -26,5 +26,6 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Starta servern och lyssna på $PORT (använder shell-form för env-var expansion)
-CMD serve dist --single --listen 0.0.0.0:${PORT}
+CMD ["sh", "-c", "serve -s dist -l $PORT"]
+
 
