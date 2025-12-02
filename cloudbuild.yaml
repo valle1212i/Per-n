@@ -1,0 +1,37 @@
+steps:
+  # Build Docker image
+  - name: gcr.io/cloud-builders/docker
+    id: Build image
+    args:
+      - build
+      - -t
+      - europe-north1-docker.pkg.dev/sigma-future-479409-h9/source-services/per-an:latest
+      - .
+
+  # Push Docker image
+  - name: gcr.io/cloud-builders/docker
+    id: Push image
+    args:
+      - push
+      - europe-north1-docker.pkg.dev/sigma-future-479409-h9/source-services/per-an:latest
+
+  # Deploy to Cloud Run
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: Deploy to Cloud Run
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - per-an
+      - --image=europe-north1-docker.pkg.dev/sigma-future-479409-h9/source-services/per-an:latest
+      - --region=europe-north1
+      - --platform=managed
+      - --allow-unauthenticated
+      - --service-account=source-run-sa@sigma-future-479409-h9.iam.gserviceaccount.com
+
+images:
+  - europe-north1-docker.pkg.dev/sigma-future-479409-h9/source-services/per-an:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
