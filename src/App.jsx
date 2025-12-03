@@ -1155,9 +1155,15 @@ function App() {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    // Track page view on route change
+    // Track page view on route change (non-blocking)
     if (hasConsent) {
-      trackPageView({ page: location.pathname })
+      // Use setTimeout to defer tracking and avoid initialization issues
+      setTimeout(() => {
+        trackPageView({ page: location.pathname }).catch(err => {
+          // Silently fail - analytics shouldn't break the app
+          console.debug('Analytics tracking failed:', err)
+        })
+      }, 0)
     }
   }, [location.pathname, hasConsent])
 

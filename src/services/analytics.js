@@ -6,8 +6,14 @@
  */
 
 // Import config values directly to avoid initialization issues
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
-const TENANT = import.meta.env.VITE_TENANT_ID || 'your-exact-tenant';
+// Use functions to defer access and avoid initialization order issues
+function getBaseURL() {
+  return import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
+}
+
+function getTenant() {
+  return import.meta.env.VITE_TENANT_ID || 'your-exact-tenant';
+}
 
 /**
  * Get or create session ID for analytics
@@ -56,15 +62,15 @@ export async function trackPageView(options = {}) {
     const page = options.page || (typeof window !== 'undefined' ? window.location.pathname : '/');
     const referrer = options.referrer || (typeof window !== 'undefined' ? document.referrer : '');
     
-    const response = await fetch(`${BASE_URL}/api/analytics/track`, {
+    const response = await fetch(`${getBaseURL()}/api/analytics/track`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Tenant': TENANT
+        'X-Tenant': getTenant()
       },
       body: JSON.stringify({
         event: 'page_view',
-        tenant: TENANT,
+        tenant: getTenant(),
         data: {
           page: page,
           referrer: referrer,
@@ -77,11 +83,15 @@ export async function trackPageView(options = {}) {
     });
     
     if (!response.ok) {
-      console.warn('Failed to track page view:', response.status);
+      // Silently fail - analytics shouldn't break the app
+      console.debug('Analytics tracking failed:', response.status);
     }
   } catch (error) {
-    console.error('Error tracking page view:', error);
-    // Don't throw - analytics failures shouldn't break the app
+    // Silently fail - analytics failures shouldn't break the app
+    // CORS errors are expected and should be ignored
+    if (error.name !== 'TypeError' || !error.message.includes('fetch')) {
+      console.debug('Analytics tracking error:', error);
+    }
   }
 }
 
@@ -96,15 +106,15 @@ export async function trackEvent(eventType, eventData = {}) {
     const sessionId = getSessionId();
     if (!sessionId) return;
     
-    const response = await fetch(`${BASE_URL}/api/analytics/track`, {
+    const response = await fetch(`${getBaseURL()}/api/analytics/track`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Tenant': TENANT
+        'X-Tenant': getTenant()
       },
       body: JSON.stringify({
         event: eventType,
-        tenant: TENANT,
+        tenant: getTenant(),
         data: {
           ...eventData,
           sessionId: sessionId,

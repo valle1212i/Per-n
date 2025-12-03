@@ -8,12 +8,18 @@
 import { getCSRFToken } from './csrf';
 
 // Import config values directly to avoid initialization issues
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
-const TENANT = import.meta.env.VITE_TENANT_ID || 'your-exact-tenant';
+// Use functions to defer access and avoid initialization order issues
+function getBaseURL() {
+  return import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
+}
+
+function getTenant() {
+  return import.meta.env.VITE_TENANT_ID || 'your-exact-tenant';
+}
 
 // Get API base URL dynamically to avoid initialization issues
 function getApiBase() {
-  return `${BASE_URL}/api/system/booking`;
+  return `${getBaseURL()}/api/system/booking`;
 }
 
 /**
@@ -150,7 +156,7 @@ export async function createBooking(bookingData) {
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken,
-        'X-Tenant': TENANT
+        'X-Tenant': getTenant()
       },
       credentials: 'include',
       body: JSON.stringify({
@@ -216,7 +222,7 @@ export async function updateBooking(bookingId, updates) {
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken,
-        'X-Tenant': TENANT
+        'X-Tenant': getTenant()
       },
       credentials: 'include',
       body: JSON.stringify(body)
@@ -265,7 +271,7 @@ export async function cancelBooking(bookingId) {
       method: 'POST',
       headers: {
         'X-CSRF-Token': csrfToken,
-        'X-Tenant': TENANT
+        'X-Tenant': getTenant()
       },
       credentials: 'include'
     });

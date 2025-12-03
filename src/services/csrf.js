@@ -4,7 +4,10 @@
  * Fetches CSRF tokens required for authenticated API requests
  */
 // Import config values directly to avoid initialization issues
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
+// Use function to defer access and avoid initialization order issues
+function getBaseURL() {
+  return import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
+}
 
 /**
  * Get CSRF token from customer portal
@@ -12,7 +15,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://source-database-8
  */
 export async function getCSRFToken() {
   try {
-    const response = await fetch(`${BASE_URL}/api/auth/csrf`, {
+    const response = await fetch(`${getBaseURL()}/api/auth/csrf`, {
       credentials: 'include'
     });
     
