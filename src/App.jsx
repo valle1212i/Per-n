@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { NavLink, Routes, Route, Link, useLocation } from 'react-router-dom'
 import './App.css'
 import ConsentBanner from './components/ConsentBanner'
 import { useGeoTracking } from './hooks/useGeoTracking'
+import { fetchServices, fetchProviders, createBooking, generateAvailableSlots, fetchBookings } from './services/booking'
+import { trackFormStart, trackFormSubmit, trackPageView } from './services/analytics'
 
 const heroSlides = [
   {
@@ -686,7 +688,8 @@ const Calendar = ({ selectedDate, onDateSelect, bookedDates = [] }) => {
 const BookingForm = () => {
   const [formData, setFormData] = useState({
     date: '',
-    package: '',
+    serviceId: '',
+    providerId: '',
     guests: 2,
     time: '',
     name: '',
@@ -696,105 +699,296 @@ const BookingForm = () => {
     bookingType: 'table' // 'table' or 'package'
   })
 
-  // Sample booked dates - in production, this would come from your backend
-  const [bookedDates] = useState(() => {
-    const booked = []
-    const today = new Date()
-    // Add some sample booked dates (e.g., every Friday and Saturday for the next 2 months)
-    for (let i = 0; i < 60; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() + i)
-      const dayOfWeek = date.getDay()
-      // Book some random dates as examples
-      if (Math.random() > 0.7 || (dayOfWeek === 5 || dayOfWeek === 6)) {
-        const dateStr = date.toISOString().split('T')[0]
-        booked.push(dateStr)
+  const [services, setServices] = useState([])
+  const [providers, setProviders] = useState([])
+  const [availableSlots, setAvailableSlots] = useState([])
+  const [bookedDates, setBookedDates] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(false)
+
+  // ✅ CRITICAL: Load services and providers on component mount
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true)
+      try {
+        const [servicesData, providersData] = await Promise.all([
+          fetchServices(true),
+          fetchProviders(true)
+        ])
+        
+        setServices(servicesData)
+        setProviders(providersData)
+        
+        // Track form start
+        trackFormStart('booking-form')
+      } catch (error) {
+        console.error('Error loading booking data:', error)
+        setError('Kunde inte ladda bokningsdata. Ladda om sidan och försök igen.')
+      } finally {
+        setLoading(false)
       }
     }
-    return booked
-  })
+    
+    loadData()
+  }, [])
 
-  const availableTimes = [
-    '12:00', '12:30', '13:00', '13:30', '14:00',
-    '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'
-  ]
+  // ✅ CRITICAL: When service, provider, or date changes, check availability
+  useEffect(() => {
+    checkAvailability()
+  }, [checkAvailability])
+
+  // Load booked dates for calendar display
+  useEffect(() => {
+    loadBookedDates()
+  }, [loadBookedDates])
+
+  const loadBookedDates = useCallback(async () => {
+    if (!formData.providerId) return
+    
+    try {
+      const today = new Date()
+      const futureDate = new Date()
+      futureDate.setDate(today.getDate() + 60) // Next 60 days
+      
+      const bookings = await fetchBookings(today, futureDate, formData.providerId)
+      
+      // Extract unique dates that have bookings
+      const booked = new Set()
+      bookings.forEach(booking => {
+        if (booking.status !== 'canceled') {
+          const date = new Date(booking.start)
+          const dateStr = date.toISOString().split('T')[0]
+          booked.add(dateStr)
+        }
+      })
+      
+      setBookedDates(Array.from(booked))
+    } catch (error) {
+      console.error('Error loading booked dates:', error)
+    }
+  }, [formData.providerId])
+
+  const checkAvailability = useCallback(async () => {
+    if (!formData.serviceId || !formData.providerId || !formData.date) {
+      setAvailableSlots([])
+      return
+    }
+
+    try {
+      const selectedService = services.find(s => s._id === formData.serviceId)
+      if (!selectedService) {
+        setAvailableSlots([])
+        return
+      }
+
+      const durationMin = selectedService.durationMin || 120 // Default 2 hours for restaurant
+      const selectedDate = new Date(formData.date)
+      
+      // Generate available slots
+      const slots = await generateAvailableSlots(
+        selectedDate,
+        durationMin,
+        formData.providerId,
+        {
+          startHour: 12, // Restaurant hours: 12:00 - 21:00
+          endHour: 21,
+          intervalMin: 30
+        }
+      )
+
+      setAvailableSlots(slots)
+    } catch (error) {
+      console.error('Error checking availability:', error)
+      setAvailableSlots([])
+    }
+  }, [formData.serviceId, formData.providerId, formData.date, services])
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
+      // Reset time when service or provider changes
+      ...(name === 'serviceId' || name === 'providerId' ? { time: '' } : {})
     }))
+    setError(null)
   }
 
   const handleDateSelect = (date) => {
     setFormData(prev => ({
       ...prev,
-      date
+      date,
+      time: '' // Reset time when date changes
     }))
+    setError(null)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Here you would typically send the data to your backend
-    console.log('Booking submitted:', formData)
-    alert('Tack för din bokning! Vi bekräftar via e-post inom kort.')
+    setSubmitting(true)
+    setError(null)
+    setSuccess(false)
+
+    try {
+      // Validate required fields
+      if (!formData.serviceId || !formData.providerId || !formData.date || !formData.time) {
+        throw new Error('Vänligen fyll i alla obligatoriska fält')
+      }
+
+      const selectedService = services.find(s => s._id === formData.serviceId)
+      if (!selectedService) {
+        throw new Error('Ogiltig tjänst vald')
+      }
+
+      // Build booking date/time
+      const bookingDate = new Date(formData.date)
+      const [hours, minutes] = formData.time.split(':')
+      bookingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+
+      const durationMin = selectedService.durationMin || 120
+      const bookingEnd = new Date(bookingDate)
+      bookingEnd.setMinutes(bookingEnd.getMinutes() + durationMin)
+
+      // Create booking
+      const result = await createBooking({
+        serviceId: formData.serviceId,
+        providerId: formData.providerId,
+        start: bookingDate,
+        end: bookingEnd,
+        customerName: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        status: 'confirmed'
+      })
+
+      if (result.success) {
+        setSuccess(true)
+        trackFormSubmit('booking-form')
+        
+        // Reset form
+        setFormData({
+          date: '',
+          serviceId: '',
+          providerId: '',
+          guests: 2,
+          time: '',
+          name: '',
+          email: '',
+          phone: '',
+          specialRequests: '',
+          bookingType: formData.bookingType
+        })
+        
+        // Refresh availability
+        await checkAvailability()
+        await loadBookedDates()
+        
+        alert('Tack för din bokning! Vi bekräftar via e-post inom kort.')
+      } else if (result.conflict) {
+        setError(result.message || 'Denna tid är redan bokad. Välj en annan tid.')
+        // Refresh availability
+        await checkAvailability()
+      } else {
+        throw new Error(result.message || 'Kunde inte skapa bokning')
+      }
+    } catch (error) {
+      console.error('Error submitting booking:', error)
+      setError(error.message || 'Ett fel uppstod vid skapande av bokning')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const today = new Date().toISOString().split('T')[0]
 
+  if (loading) {
+    return (
+      <section className="booking-form-section" data-reveal>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Laddar bokningsdata...</p>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="booking-form-section" data-reveal>
       <form className="booking-form" onSubmit={handleSubmit}>
+        {error && (
+          <div className="booking-error" style={{ 
+            padding: '1rem', 
+            marginBottom: '1rem', 
+            backgroundColor: '#fee', 
+            color: '#c33',
+            borderRadius: '4px'
+          }}>
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="booking-success" style={{ 
+            padding: '1rem', 
+            marginBottom: '1rem', 
+            backgroundColor: '#efe', 
+            color: '#3c3',
+            borderRadius: '4px'
+          }}>
+            Bokning skapad! Vi bekräftar via e-post inom kort.
+          </div>
+        )}
+
         <div className="booking-form-grid">
           <div className="booking-form-group">
-            <label htmlFor="bookingType">Vad vill du boka?</label>
-            <div className="radio-group">
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="bookingType"
-                  value="table"
-                  checked={formData.bookingType === 'table'}
-                  onChange={handleChange}
-                />
-                <span>Boka bord</span>
-              </label>
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="bookingType"
-                  value="package"
-                  checked={formData.bookingType === 'package'}
-                  onChange={handleChange}
-                />
-                <span>Välj paket</span>
-              </label>
-            </div>
+            <label htmlFor="serviceId">Välj tjänst *</label>
+            <select
+              id="serviceId"
+              name="serviceId"
+              value={formData.serviceId}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Välj tjänst...</option>
+              {services.map((service) => (
+                <option key={service._id} value={service._id}>
+                  {service.name} {service.durationMin ? `(${service.durationMin} min)` : ''}
+                </option>
+              ))}
+            </select>
+            {services.length === 0 && (
+              <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
+                Inga tjänster tillgängliga. Kontakta restaurangen för bokning.
+              </p>
+            )}
           </div>
 
-          {formData.bookingType === 'package' && (
-            <div className="booking-form-group">
-              <label htmlFor="package">Välj paket</label>
-              <select
-                id="package"
-                name="package"
-                value={formData.package}
-                onChange={handleChange}
-                required={formData.bookingType === 'package'}
-              >
-                <option value="">Välj ett paket</option>
-                {tastingJourneys.map((journey) => (
-                  <option key={journey.title} value={journey.title}>
-                    {journey.title} - {journey.price}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="booking-form-group">
+            <label htmlFor="providerId">Välj personal/område *</label>
+            <select
+              id="providerId"
+              name="providerId"
+              value={formData.providerId}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Välj personal/område...</option>
+              {providers.map((provider) => (
+                <option key={provider._id} value={provider._id}>
+                  {provider.name}
+                </option>
+              ))}
+            </select>
+            {providers.length === 0 && (
+              <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
+                Ingen personal tillgänglig. Kontakta restaurangen för bokning.
+              </p>
+            )}
+          </div>
 
           <div className="booking-form-group full-width">
-            <label>Välj datum</label>
+            <label>Välj datum *</label>
             <Calendar
               selectedDate={formData.date}
               onDateSelect={handleDateSelect}
@@ -811,21 +1005,31 @@ const BookingForm = () => {
           </div>
 
           <div className="booking-form-group">
-            <label htmlFor="time">Tid</label>
+            <label htmlFor="time">Tid *</label>
             <select
               id="time"
               name="time"
               value={formData.time}
               onChange={handleChange}
               required
+              disabled={availableSlots.length === 0 && formData.date !== ''}
             >
-              <option value="">Välj tid</option>
-              {availableTimes.map((time) => (
-                <option key={time} value={time}>
-                  {time}
+              <option value="">
+                {availableSlots.length === 0 && formData.date !== '' 
+                  ? 'Inga lediga tider för detta datum' 
+                  : 'Välj tid'}
+              </option>
+              {availableSlots.map((slot, index) => (
+                <option key={index} value={slot.start.toTimeString().slice(0, 5)}>
+                  {slot.display}
                 </option>
               ))}
             </select>
+            {formData.date && availableSlots.length === 0 && formData.serviceId && formData.providerId && (
+              <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
+                Inga lediga tider för detta datum. Välj ett annat datum.
+              </p>
+            )}
           </div>
 
           <div className="booking-form-group">
@@ -891,8 +1095,12 @@ const BookingForm = () => {
           </div>
         </div>
 
-        <button type="submit" className="primary-btn booking-submit">
-          Bekräfta bokning
+        <button 
+          type="submit" 
+          className="primary-btn booking-submit"
+          disabled={submitting || !formData.serviceId || !formData.providerId || !formData.date || !formData.time}
+        >
+          {submitting ? 'Skapar bokning...' : 'Bekräfta bokning'}
         </button>
       </form>
     </section>
@@ -947,7 +1155,11 @@ function App() {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [location.pathname])
+    // Track page view on route change
+    if (hasConsent) {
+      trackPageView({ page: location.pathname })
+    }
+  }, [location.pathname, hasConsent])
 
   useEffect(() => {
     const handleScroll = () => {
