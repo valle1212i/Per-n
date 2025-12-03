@@ -4,31 +4,7 @@ import './App.css'
 import ConsentBanner from './components/ConsentBanner'
 import { useGeoTracking } from './hooks/useGeoTracking'
 // Use dynamic imports to avoid initialization issues
-// These will be loaded when needed, not at module initialization
-let fetchServices, fetchProviders, createBooking, generateAvailableSlots, fetchBookings;
-let trackFormStart, trackFormSubmit, trackPageView;
-
-// Lazy load booking services
-async function loadBookingServices() {
-  if (!fetchServices) {
-    const bookingModule = await import('./services/booking');
-    fetchServices = bookingModule.fetchServices;
-    fetchProviders = bookingModule.fetchProviders;
-    createBooking = bookingModule.createBooking;
-    generateAvailableSlots = bookingModule.generateAvailableSlots;
-    fetchBookings = bookingModule.fetchBookings;
-  }
-}
-
-// Lazy load analytics services
-async function loadAnalyticsServices() {
-  if (!trackPageView) {
-    const analyticsModule = await import('./services/analytics');
-    trackFormStart = analyticsModule.trackFormStart;
-    trackFormSubmit = analyticsModule.trackFormSubmit;
-    trackPageView = analyticsModule.trackPageView;
-  }
-}
+// Services will be loaded lazily when needed
 
 const heroSlides = [
   {
@@ -732,6 +708,48 @@ const BookingForm = () => {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
 
+  // Store loaded services in refs to avoid re-initialization
+  const servicesRef = useState(() => ({
+    fetchServices: null,
+    fetchProviders: null,
+    createBooking: null,
+    generateAvailableSlots: null,
+    fetchBookings: null,
+    trackFormStart: null,
+    trackFormSubmit: null
+  }))[0]
+
+  // Lazy load booking services
+  const loadBookingServices = useCallback(async () => {
+    if (!servicesRef.fetchServices) {
+      try {
+        const bookingModule = await import('./services/booking');
+        servicesRef.fetchServices = bookingModule.fetchServices;
+        servicesRef.fetchProviders = bookingModule.fetchProviders;
+        servicesRef.createBooking = bookingModule.createBooking;
+        servicesRef.generateAvailableSlots = bookingModule.generateAvailableSlots;
+        servicesRef.fetchBookings = bookingModule.fetchBookings;
+      } catch (error) {
+        console.error('Failed to load booking services:', error);
+        throw error;
+      }
+    }
+  }, [servicesRef])
+
+  // Lazy load analytics services
+  const loadAnalyticsServices = useCallback(async () => {
+    if (!servicesRef.trackFormStart) {
+      try {
+        const analyticsModule = await import('./services/analytics');
+        servicesRef.trackFormStart = analyticsModule.trackFormStart;
+        servicesRef.trackFormSubmit = analyticsModule.trackFormSubmit;
+      } catch (error) {
+        console.error('Failed to load analytics services:', error);
+        // Don't throw - analytics is optional
+      }
+    }
+  }, [servicesRef])
+
   // ✅ CRITICAL: Load services and providers on component mount
   useEffect(() => {
     async function loadData() {
@@ -741,17 +759,21 @@ const BookingForm = () => {
         await loadBookingServices()
         await loadAnalyticsServices()
         
+        if (!servicesRef.fetchServices || !servicesRef.fetchProviders) {
+          throw new Error('Failed to load booking services')
+        }
+        
         const [servicesData, providersData] = await Promise.all([
-          fetchServices(true),
-          fetchProviders(true)
+          servicesRef.fetchServices(true),
+          servicesRef.fetchProviders(true)
         ])
         
         setServices(servicesData)
         setProviders(providersData)
         
         // Track form start
-        if (trackFormStart) {
-          trackFormStart('booking-form').catch(() => {})
+        if (servicesRef.trackFormStart) {
+          servicesRef.trackFormStart('booking-form').catch(() => {})
         }
       } catch (error) {
         console.error('Error loading booking data:', error)
@@ -762,7 +784,7 @@ const BookingForm = () => {
     }
     
     loadData()
-  }, [])
+  }, [loadBookingServices, loadAnalyticsServices, servicesRef])
 
   // ✅ CRITICAL: When service, provider, or date changes, check availability
   useEffect(() => {
@@ -779,13 +801,16 @@ const BookingForm = () => {
     
     try {
       await loadBookingServices()
-      if (!fetchBookings) return
+      if (!servicesRef.fetchBookings) {
+        console.warn('Booking services not loaded yet')
+        return
+      }
       
       const today = new Date()
       const futureDate = new Date()
       futureDate.setDate(today.getDate() + 60) // Next 60 days
       
-      const bookings = await fetchBookings(today, futureDate, formData.providerId)
+      const bookings = await servicesRef.fetchBookings(today, futureDate, formData.providerId)
       
       // Extract unique dates that have bookings
       const booked = new Set()
@@ -801,7 +826,7 @@ const BookingForm = () => {
     } catch (error) {
       console.error('Error loading booked dates:', error)
     }
-  }, [formData.providerId])
+  }, [formData.providerId, loadBookingServices, servicesRef])
 
   const checkAvailability = useCallback(async () => {
     if (!formData.serviceId || !formData.providerId || !formData.date) {
@@ -811,7 +836,8 @@ const BookingForm = () => {
 
     try {
       await loadBookingServices()
-      if (!generateAvailableSlots) {
+      if (!servicesRef.generateAvailableSlots) {
+        console.warn('Booking services not loaded yet')
         setAvailableSlots([])
         return
       }
@@ -826,7 +852,7 @@ const BookingForm = () => {
       const selectedDate = new Date(formData.date)
       
       // Generate available slots
-      const slots = await generateAvailableSlots(
+      const slots = await servicesRef.generateAvailableSlots(
         selectedDate,
         durationMin,
         formData.providerId,
@@ -842,7 +868,7 @@ const BookingForm = () => {
       console.error('Error checking availability:', error)
       setAvailableSlots([])
     }
-  }, [formData.serviceId, formData.providerId, formData.date, services])
+  }, [formData.serviceId, formData.providerId, formData.date, services, loadBookingServices, servicesRef])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -892,12 +918,12 @@ const BookingForm = () => {
 
       // Ensure services are loaded
       await loadBookingServices()
-      if (!createBooking) {
+      if (!servicesRef.createBooking) {
         throw new Error('Bokningstjänster kunde inte laddas')
       }
 
       // Create booking
-      const result = await createBooking({
+      const result = await servicesRef.createBooking({
         serviceId: formData.serviceId,
         providerId: formData.providerId,
         start: bookingDate,
@@ -910,8 +936,9 @@ const BookingForm = () => {
 
       if (result.success) {
         setSuccess(true)
-        if (trackFormSubmit) {
-          trackFormSubmit('booking-form').catch(() => {})
+        await loadAnalyticsServices()
+        if (servicesRef.trackFormSubmit) {
+          servicesRef.trackFormSubmit('booking-form').catch(() => {})
         }
         
         // Reset form
@@ -1207,9 +1234,9 @@ function App() {
       // Use setTimeout to defer tracking and avoid initialization issues
       setTimeout(async () => {
         try {
-          await loadAnalyticsServices()
-          if (trackPageView) {
-            await trackPageView({ page: location.pathname })
+          const analyticsModule = await import('./services/analytics').catch(() => null)
+          if (analyticsModule?.trackPageView) {
+            await analyticsModule.trackPageView({ page: location.pathname }).catch(() => {})
           }
         } catch (err) {
           // Silently fail - analytics shouldn't break the app
