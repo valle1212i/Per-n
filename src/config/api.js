@@ -10,8 +10,12 @@
  * - VITE_API_BASE_URL (optional, defaults to customer portal URL)
  * - VITE_TENANT_ID (optional, can override tenant value)
  */
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
+const TENANT = import.meta.env.VITE_TENANT_ID || 'your-exact-tenant';
+
 export default {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app',
-  tenant: import.meta.env.VITE_TENANT_ID || 'your-exact-tenant', // ✅ Replace with your exact tenant value from customer portal
+  baseURL: BASE_URL,
+  tenant: TENANT
 };
 

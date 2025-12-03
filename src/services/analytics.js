@@ -5,7 +5,9 @@
  * No CSRF protection required for this endpoint
  */
 
-import apiConfig from '../config/api';
+// Import config values directly to avoid initialization issues
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
+const TENANT = import.meta.env.VITE_TENANT_ID || 'your-exact-tenant';
 
 /**
  * Get or create session ID for analytics
@@ -54,15 +56,15 @@ export async function trackPageView(options = {}) {
     const page = options.page || (typeof window !== 'undefined' ? window.location.pathname : '/');
     const referrer = options.referrer || (typeof window !== 'undefined' ? document.referrer : '');
     
-    const response = await fetch(`${apiConfig.baseURL}/api/analytics/track`, {
+    const response = await fetch(`${BASE_URL}/api/analytics/track`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Tenant': apiConfig.tenant
+        'X-Tenant': TENANT
       },
       body: JSON.stringify({
         event: 'page_view',
-        tenant: apiConfig.tenant,
+        tenant: TENANT,
         data: {
           page: page,
           referrer: referrer,
@@ -94,15 +96,15 @@ export async function trackEvent(eventType, eventData = {}) {
     const sessionId = getSessionId();
     if (!sessionId) return;
     
-    const response = await fetch(`${apiConfig.baseURL}/api/analytics/track`, {
+    const response = await fetch(`${BASE_URL}/api/analytics/track`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Tenant': apiConfig.tenant
+        'X-Tenant': TENANT
       },
       body: JSON.stringify({
         event: eventType,
-        tenant: apiConfig.tenant,
+        tenant: TENANT,
         data: {
           ...eventData,
           sessionId: sessionId,

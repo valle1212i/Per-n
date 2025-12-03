@@ -5,10 +5,16 @@
  * 
  * CRITICAL: Always fetch services and providers dynamically - never hardcode IDs!
  */
-import apiConfig from '../config/api';
 import { getCSRFToken } from './csrf';
 
-const API_BASE = `${apiConfig.baseURL}/api/system/booking`;
+// Import config values directly to avoid initialization issues
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
+const TENANT = import.meta.env.VITE_TENANT_ID || 'your-exact-tenant';
+
+// Get API base URL dynamically to avoid initialization issues
+function getApiBase() {
+  return `${BASE_URL}/api/system/booking`;
+}
 
 /**
  * Fetch all active services (bookable items) for the tenant
@@ -17,7 +23,7 @@ const API_BASE = `${apiConfig.baseURL}/api/system/booking`;
  */
 export async function fetchServices(isActive = true) {
   try {
-    const url = `${API_BASE}/services${isActive ? '?isActive=true' : ''}`;
+    const url = `${getApiBase()}/services${isActive ? '?isActive=true' : ''}`;
     const response = await fetch(url, {
       credentials: 'include'
     });
@@ -47,7 +53,7 @@ export async function fetchServices(isActive = true) {
  */
 export async function fetchProviders(isActive = true) {
   try {
-    const url = `${API_BASE}/providers${isActive ? '?isActive=true' : ''}`;
+    const url = `${getApiBase()}/providers${isActive ? '?isActive=true' : ''}`;
     const response = await fetch(url, {
       credentials: 'include'
     });
@@ -93,7 +99,7 @@ export async function fetchBookings(fromDate, toDate, providerId = null, status 
       params.append('status', status);
     }
     
-    const response = await fetch(`${API_BASE}/bookings?${params}`, {
+    const response = await fetch(`${getApiBase()}/bookings?${params}`, {
       credentials: 'include'
     });
     
@@ -139,12 +145,12 @@ export async function createBooking(bookingData) {
       ? bookingData.end.toISOString() 
       : bookingData.end;
     
-    const response = await fetch(`${API_BASE}/bookings`, {
+    const response = await fetch(`${getApiBase()}/bookings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken,
-        'X-Tenant': apiConfig.tenant
+        'X-Tenant': TENANT
       },
       credentials: 'include',
       body: JSON.stringify({
@@ -205,12 +211,12 @@ export async function updateBooking(bookingId, updates) {
     if (body.start instanceof Date) body.start = body.start.toISOString();
     if (body.end instanceof Date) body.end = body.end.toISOString();
     
-    const response = await fetch(`${API_BASE}/bookings/${bookingId}`, {
+    const response = await fetch(`${getApiBase()}/bookings/${bookingId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken,
-        'X-Tenant': apiConfig.tenant
+        'X-Tenant': TENANT
       },
       credentials: 'include',
       body: JSON.stringify(body)
@@ -255,11 +261,11 @@ export async function cancelBooking(bookingId) {
   try {
     const csrfToken = await getCSRFToken();
     
-    const response = await fetch(`${API_BASE}/bookings/${bookingId}/cancel`, {
+    const response = await fetch(`${getApiBase()}/bookings/${bookingId}/cancel`, {
       method: 'POST',
       headers: {
         'X-CSRF-Token': csrfToken,
-        'X-Tenant': apiConfig.tenant
+        'X-Tenant': TENANT
       },
       credentials: 'include'
     });

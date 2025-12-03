@@ -3,8 +3,11 @@
  * 
  * Handles contact form submissions to the customer portal
  */
-import apiConfig from '../config/api';
 import { getCSRFToken } from './csrf';
+
+// Import config values directly to avoid initialization issues
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
+const TENANT = import.meta.env.VITE_TENANT_ID || 'your-exact-tenant';
 
 /**
  * Send a contact message to the customer portal
@@ -24,16 +27,16 @@ export async function sendContactMessage(messageData) {
       throw new Error('Kunde inte hämta säkerhetstoken. Ladda om sidan och försök igen.');
     }
     
-    const response = await fetch(`${apiConfig.baseURL}/api/messages`, {
+    const response = await fetch(`${BASE_URL}/api/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken,
-        'X-Tenant': apiConfig.tenant
+        'X-Tenant': TENANT
       },
       credentials: 'include',
       body: JSON.stringify({
-        tenant: apiConfig.tenant,
+        tenant: TENANT,
         name: messageData.name || '',
         email: messageData.email,
         phone: messageData.phone || '',
