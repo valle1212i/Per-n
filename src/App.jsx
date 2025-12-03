@@ -3,8 +3,32 @@ import { NavLink, Routes, Route, Link, useLocation } from 'react-router-dom'
 import './App.css'
 import ConsentBanner from './components/ConsentBanner'
 import { useGeoTracking } from './hooks/useGeoTracking'
-import { fetchServices, fetchProviders, createBooking, generateAvailableSlots, fetchBookings } from './services/booking'
-import { trackFormStart, trackFormSubmit, trackPageView } from './services/analytics'
+// Use dynamic imports to avoid initialization issues
+// These will be loaded when needed, not at module initialization
+let fetchServices, fetchProviders, createBooking, generateAvailableSlots, fetchBookings;
+let trackFormStart, trackFormSubmit, trackPageView;
+
+// Lazy load booking services
+async function loadBookingServices() {
+  if (!fetchServices) {
+    const bookingModule = await import('./services/booking');
+    fetchServices = bookingModule.fetchServices;
+    fetchProviders = bookingModule.fetchProviders;
+    createBooking = bookingModule.createBooking;
+    generateAvailableSlots = bookingModule.generateAvailableSlots;
+    fetchBookings = bookingModule.fetchBookings;
+  }
+}
+
+// Lazy load analytics services
+async function loadAnalyticsServices() {
+  if (!trackPageView) {
+    const analyticsModule = await import('./services/analytics');
+    trackFormStart = analyticsModule.trackFormStart;
+    trackFormSubmit = analyticsModule.trackFormSubmit;
+    trackPageView = analyticsModule.trackPageView;
+  }
+}
 
 const heroSlides = [
   {
@@ -713,6 +737,10 @@ const BookingForm = () => {
     async function loadData() {
       setLoading(true)
       try {
+        // Load services dynamically
+        await loadBookingServices()
+        await loadAnalyticsServices()
+        
         const [servicesData, providersData] = await Promise.all([
           fetchServices(true),
           fetchProviders(true)
@@ -722,7 +750,9 @@ const BookingForm = () => {
         setProviders(providersData)
         
         // Track form start
-        trackFormStart('booking-form')
+        if (trackFormStart) {
+          trackFormStart('booking-form').catch(() => {})
+        }
       } catch (error) {
         console.error('Error loading booking data:', error)
         setError('Kunde inte ladda bokningsdata. Ladda om sidan och försök igen.')
@@ -748,6 +778,9 @@ const BookingForm = () => {
     if (!formData.providerId) return
     
     try {
+      await loadBookingServices()
+      if (!fetchBookings) return
+      
       const today = new Date()
       const futureDate = new Date()
       futureDate.setDate(today.getDate() + 60) // Next 60 days
@@ -777,6 +810,12 @@ const BookingForm = () => {
     }
 
     try {
+      await loadBookingServices()
+      if (!generateAvailableSlots) {
+        setAvailableSlots([])
+        return
+      }
+      
       const selectedService = services.find(s => s._id === formData.serviceId)
       if (!selectedService) {
         setAvailableSlots([])
@@ -851,6 +890,12 @@ const BookingForm = () => {
       const bookingEnd = new Date(bookingDate)
       bookingEnd.setMinutes(bookingEnd.getMinutes() + durationMin)
 
+      // Ensure services are loaded
+      await loadBookingServices()
+      if (!createBooking) {
+        throw new Error('Bokningstjänster kunde inte laddas')
+      }
+
       // Create booking
       const result = await createBooking({
         serviceId: formData.serviceId,
@@ -865,7 +910,9 @@ const BookingForm = () => {
 
       if (result.success) {
         setSuccess(true)
-        trackFormSubmit('booking-form')
+        if (trackFormSubmit) {
+          trackFormSubmit('booking-form').catch(() => {})
+        }
         
         // Reset form
         setFormData({
@@ -1158,11 +1205,16 @@ function App() {
     // Track page view on route change (non-blocking)
     if (hasConsent) {
       // Use setTimeout to defer tracking and avoid initialization issues
-      setTimeout(() => {
-        trackPageView({ page: location.pathname }).catch(err => {
+      setTimeout(async () => {
+        try {
+          await loadAnalyticsServices()
+          if (trackPageView) {
+            await trackPageView({ page: location.pathname })
+          }
+        } catch (err) {
           // Silently fail - analytics shouldn't break the app
           console.debug('Analytics tracking failed:', err)
-        })
+        }
       }, 0)
     }
   }, [location.pathname, hasConsent])
