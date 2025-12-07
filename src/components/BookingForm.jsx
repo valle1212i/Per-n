@@ -105,7 +105,13 @@ function BookingForm() {
         }
       } catch (error) {
         console.error('Error loading booking data:', error)
-        setError('Kunde inte ladda bokningsdata. Ladda om sidan och försök igen.')
+        // Ensure error is always a string, never an object
+        const errorMessage = error instanceof Error ? error.message : String(error || 'Kunde inte ladda bokningsdata. Ladda om sidan och försök igen.')
+        setError(errorMessage || 'Kunde inte ladda bokningsdata. Ladda om sidan och försök igen.')
+        // Ensure we set empty arrays and null for settings
+        setServices([])
+        setProviders([])
+        setBookingSettings(null)
       } finally {
         setLoading(false)
       }
@@ -322,7 +328,9 @@ function BookingForm() {
       }
     } catch (error) {
       console.error('Error submitting booking:', error)
-      setError(error.message || 'Ett fel uppstod vid skapande av bokning')
+      // Ensure error is always a string
+      const errorMessage = error instanceof Error ? error.message : String(error || 'Ett fel uppstod vid skapande av bokning')
+      setError(errorMessage || 'Ett fel uppstod vid skapande av bokning')
     } finally {
       setSubmitting(false)
     }
@@ -341,7 +349,7 @@ function BookingForm() {
   return (
     <section className="booking-form-section" data-reveal>
       <form className="booking-form" onSubmit={handleSubmit}>
-        {error && (
+        {error && typeof error === 'string' && error.length > 0 && (
           <div className="booking-error" style={{ 
             padding: '1rem', 
             marginBottom: '1rem', 
@@ -349,11 +357,11 @@ function BookingForm() {
             color: '#c33',
             borderRadius: '4px'
           }}>
-            {error}
+            {String(error)}
           </div>
         )}
         
-        {success && (
+        {success === true && (
           <div className="booking-success" style={{ 
             padding: '1rem', 
             marginBottom: '1rem', 
@@ -502,35 +510,35 @@ function BookingForm() {
           </div>
 
           {/* ✅ CRITICAL: Use formFields from settings to conditionally show/require fields */}
-          {(bookingSettings?.formFields?.requireEmail !== false && bookingSettings?.formFields?.requireEmail !== undefined) && (
+          {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requireEmail !== false && (
             <div className="booking-form-group">
-              <label htmlFor="email">E-post {bookingSettings?.formFields?.requireEmail === true ? '*' : ''}</label>
+              <label htmlFor="email">E-post {bookingSettings.formFields.requireEmail === true ? '*' : ''}</label>
               <input
                 type="email"
                 id="email"
                 name="email"
                 value={formData.email || ''}
                 onChange={handleChange}
-                required={bookingSettings?.formFields?.requireEmail === true}
+                required={bookingSettings.formFields.requireEmail === true}
               />
             </div>
           )}
 
-          {(bookingSettings?.formFields?.requirePhone !== false && bookingSettings?.formFields?.requirePhone !== undefined) && (
+          {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requirePhone !== false && (
             <div className="booking-form-group">
-              <label htmlFor="phone">Telefon {bookingSettings?.formFields?.requirePhone === true ? '*' : ''}</label>
+              <label htmlFor="phone">Telefon {bookingSettings.formFields.requirePhone === true ? '*' : ''}</label>
               <input
                 type="tel"
                 id="phone"
                 name="phone"
                 value={formData.phone || ''}
                 onChange={handleChange}
-                required={bookingSettings?.formFields?.requirePhone === true}
+                required={bookingSettings.formFields.requirePhone === true}
               />
             </div>
           )}
 
-          {(bookingSettings?.formFields?.allowSpecialRequests !== false && bookingSettings?.formFields?.allowSpecialRequests !== undefined) && (
+          {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.allowSpecialRequests !== false && (
             <div className="booking-form-group full-width">
               <label htmlFor="specialRequests">Särskilda önskemål</label>
               <textarea
