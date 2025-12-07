@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 
 // Lazy load Calendar to avoid initialization issues
-const Calendar = lazy(() => import('./Calendar').then(module => ({ default: module.Calendar })))
+const Calendar = lazy(() => import('./Calendar'))
 
 function BookingForm() {
   const [formData, setFormData] = useState({
