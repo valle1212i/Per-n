@@ -5,7 +5,15 @@
  * 
  * CRITICAL: Always fetch services and providers dynamically - never hardcode IDs!
  */
-import { getCSRFToken } from './csrf';
+// Lazy import CSRF to avoid circular dependencies
+let getCSRFToken = null;
+async function loadCSRF() {
+  if (!getCSRFToken) {
+    const csrfModule = await import('./csrf');
+    getCSRFToken = csrfModule.getCSRFToken;
+  }
+  return getCSRFToken;
+}
 
 // Import config values directly to avoid initialization issues
 // Use functions to defer access and avoid initialization order issues
@@ -221,7 +229,8 @@ export async function fetchBookings(fromDate, toDate, providerId = null, status 
  */
 export async function createBooking(bookingData) {
   try {
-    const csrfToken = await getCSRFToken();
+    const getCSRF = await loadCSRF();
+    const csrfToken = await getCSRF();
     
     // Ensure dates are ISO strings
     const startDate = bookingData.start instanceof Date 
@@ -290,7 +299,8 @@ export async function createBooking(bookingData) {
  */
 export async function updateBooking(bookingId, updates) {
   try {
-    const csrfToken = await getCSRFToken();
+    const getCSRF = await loadCSRF();
+    const csrfToken = await getCSRF();
     
     // Convert dates to ISO strings if needed
     const body = { ...updates };
@@ -345,7 +355,8 @@ export async function updateBooking(bookingId, updates) {
  */
 export async function cancelBooking(bookingId) {
   try {
-    const csrfToken = await getCSRFToken();
+    const getCSRF = await loadCSRF();
+    const csrfToken = await getCSRF();
     
     const response = await fetch(`${getApiBase()}/bookings/${bookingId}/cancel`, {
       method: 'POST',
