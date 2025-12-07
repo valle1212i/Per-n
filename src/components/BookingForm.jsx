@@ -135,8 +135,10 @@ function BookingForm() {
 
   // ✅ CRITICAL: When service, date, provider, OR settings change, check availability
   useEffect(() => {
-    if (formData.serviceId && formData.date && formData.providerId && bookingSettings) {
+    if (formData.serviceId && formData.date && formData.providerId && bookingSettings && services && services.length > 0) {
       checkAvailability()
+    } else {
+      setAvailableSlots([])
     }
   }, [formData.serviceId, formData.date, formData.providerId, bookingSettings, services])
 
@@ -372,13 +374,13 @@ function BookingForm() {
               required
             >
               <option value="">Välj tjänst...</option>
-              {services.map((service) => (
-                <option key={service._id} value={service._id}>
-                  {service.name} {service.durationMin ? `(${service.durationMin} min)` : ''}
+              {Array.isArray(services) && services.map((service) => (
+                <option key={service?._id || Math.random()} value={service?._id || ''}>
+                  {service?.name || 'Unknown'} {service?.durationMin ? `(${service.durationMin} min)` : ''}
                 </option>
               ))}
             </select>
-            {services.length === 0 && (
+            {(!Array.isArray(services) || services.length === 0) && !loading && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
                 Inga tjänster tillgängliga. Kontakta restaurangen för bokning.
               </p>
@@ -395,13 +397,13 @@ function BookingForm() {
               required
             >
               <option value="">Välj personal/område...</option>
-              {providers.map((provider) => (
-                <option key={provider._id} value={provider._id}>
-                  {provider.name}
+              {Array.isArray(providers) && providers.map((provider) => (
+                <option key={provider?._id || Math.random()} value={provider?._id || ''}>
+                  {provider?.name || 'Unknown'}
                 </option>
               ))}
             </select>
-            {providers.length === 0 && (
+            {(!Array.isArray(providers) || providers.length === 0) && !loading && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
                 Ingen personal tillgänglig. Kontakta restaurangen för bokning.
               </p>
@@ -442,9 +444,9 @@ function BookingForm() {
                   ? 'Inga lediga tider för detta datum' 
                   : 'Välj tid'}
               </option>
-              {availableSlots.map((slot, index) => (
-                <option key={index} value={slot.start.toTimeString().slice(0, 5)}>
-                  {slot.display}
+              {Array.isArray(availableSlots) && availableSlots.map((slot, index) => (
+                <option key={index} value={slot?.start?.toTimeString?.()?.slice(0, 5) || ''}>
+                  {slot?.display || ''}
                 </option>
               ))}
             </select>
