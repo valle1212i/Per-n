@@ -414,9 +414,9 @@ function BookingForm() {
             <label>Välj datum *</label>
             <Suspense fallback={<div style={{ padding: '1rem', textAlign: 'center' }}>Laddar kalender...</div>}>
               <Calendar
-                selectedDate={formData.date}
+                selectedDate={formData.date || ''}
                 onDateSelect={handleDateSelect}
-                bookedDates={bookedDates}
+                bookedDates={Array.isArray(bookedDates) ? bookedDates : []}
               />
             </Suspense>
             {formData.date && (

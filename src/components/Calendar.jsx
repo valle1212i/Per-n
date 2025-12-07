@@ -1,6 +1,14 @@
 import { useState } from 'react'
 
-const Calendar = ({ selectedDate, onDateSelect, bookedDates = [] }) => {
+const Calendar = ({ selectedDate = '', onDateSelect, bookedDates = [] }) => {
+  // Ensure bookedDates is always an array
+  const safeBookedDates = Array.isArray(bookedDates) ? bookedDates : []
+  
+  // Ensure onDateSelect is a function
+  if (typeof onDateSelect !== 'function') {
+    console.warn('Calendar: onDateSelect must be a function')
+    return <div>Kalenderfel: onDateSelect är inte en funktion</div>
+  }
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
 
@@ -22,7 +30,7 @@ const Calendar = ({ selectedDate, onDateSelect, bookedDates = [] }) => {
 
   const isDateBooked = (date) => {
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`
-    return bookedDates.includes(dateStr)
+    return safeBookedDates.includes(dateStr)
   }
 
   const isDatePast = (date) => {
@@ -41,7 +49,9 @@ const Calendar = ({ selectedDate, onDateSelect, bookedDates = [] }) => {
   const handleDateClick = (date) => {
     if (isDatePast(date) || isDateBooked(date)) return
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`
-    onDateSelect(dateStr)
+    if (typeof onDateSelect === 'function') {
+      onDateSelect(dateStr)
+    }
   }
 
   const goToPreviousMonth = () => {
