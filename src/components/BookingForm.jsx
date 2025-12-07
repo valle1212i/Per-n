@@ -384,11 +384,17 @@ function BookingForm() {
               required
             >
               <option value="">Välj tjänst...</option>
-              {Array.isArray(services) && services.map((service) => (
-                <option key={service?._id || Math.random()} value={service?._id || ''}>
-                  {service?.name || 'Unknown'} {service?.durationMin ? `(${service.durationMin} min)` : ''}
-                </option>
-              ))}
+              {Array.isArray(services) && services.map((service) => {
+                if (!service || typeof service !== 'object') return null
+                const serviceId = String(service._id || '')
+                const serviceName = String(service.name || 'Unknown')
+                const duration = service.durationMin ? `(${Number(service.durationMin)} min)` : ''
+                return (
+                  <option key={serviceId || Math.random()} value={serviceId}>
+                    {serviceName} {duration}
+                  </option>
+                )
+              })}
             </select>
             {(!Array.isArray(services) || services.length === 0) && !loading && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
@@ -407,11 +413,16 @@ function BookingForm() {
               required
             >
               <option value="">Välj personal/område...</option>
-              {Array.isArray(providers) && providers.map((provider) => (
-                <option key={provider?._id || Math.random()} value={provider?._id || ''}>
-                  {provider?.name || 'Unknown'}
-                </option>
-              ))}
+              {Array.isArray(providers) && providers.map((provider) => {
+                if (!provider || typeof provider !== 'object') return null
+                const providerId = String(provider._id || '')
+                const providerName = String(provider.name || 'Unknown')
+                return (
+                  <option key={providerId || Math.random()} value={providerId}>
+                    {providerName}
+                  </option>
+                )
+              })}
             </select>
             {(!Array.isArray(providers) || providers.length === 0) && !loading && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
@@ -454,11 +465,19 @@ function BookingForm() {
                   ? 'Inga lediga tider för detta datum' 
                   : 'Välj tid'}
               </option>
-              {Array.isArray(availableSlots) && availableSlots.map((slot, index) => (
-                <option key={index} value={slot?.start?.toTimeString?.()?.slice(0, 5) || ''}>
-                  {slot?.display || ''}
-                </option>
-              ))}
+              {Array.isArray(availableSlots) && availableSlots.map((slot, index) => {
+                if (!slot || typeof slot !== 'object') return null
+                const timeValue = slot.start && typeof slot.start.toTimeString === 'function' 
+                  ? String(slot.start.toTimeString().slice(0, 5)) 
+                  : ''
+                const displayValue = String(slot.display || '')
+                if (!timeValue && !displayValue) return null
+                return (
+                  <option key={index} value={timeValue}>
+                    {displayValue}
+                  </option>
+                )
+              })}
             </select>
             {formData.date && availableSlots.length === 0 && formData.serviceId && formData.providerId && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
@@ -467,14 +486,14 @@ function BookingForm() {
             )}
           </div>
 
-          {bookingSettings?.formFields?.requirePartySize === true && (
+          {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requirePartySize === true && (
             <div className="booking-form-group">
               <label htmlFor="guests">Gruppstorlek *</label>
               <input
                 type="number"
                 id="guests"
                 name="guests"
-                value={formData.guests}
+                value={Number(formData.guests) || 2}
                 onChange={handleChange}
                 min="1"
                 max="12"
@@ -483,13 +502,13 @@ function BookingForm() {
             </div>
           )}
 
-          {bookingSettings?.formFields?.requireNotes === true && (
+          {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requireNotes === true && (
             <div className="booking-form-group full-width">
               <label htmlFor="notes">Anteckningar *</label>
               <textarea
                 id="notes"
                 name="notes"
-                value={formData.notes || ''}
+                value={String(formData.notes || '')}
                 onChange={handleChange}
                 required
                 rows="3"
@@ -503,48 +522,48 @@ function BookingForm() {
               type="text"
               id="name"
               name="name"
-              value={formData.name}
+              value={formData.name || ''}
               onChange={handleChange}
               required
             />
           </div>
 
           {/* ✅ CRITICAL: Use formFields from settings to conditionally show/require fields */}
-          {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requireEmail !== false && (
+          {bookingSettings && bookingSettings.formFields && typeof bookingSettings.formFields.requireEmail !== 'undefined' && bookingSettings.formFields.requireEmail !== false && (
             <div className="booking-form-group">
               <label htmlFor="email">E-post {bookingSettings.formFields.requireEmail === true ? '*' : ''}</label>
               <input
                 type="email"
                 id="email"
                 name="email"
-                value={formData.email || ''}
+                value={String(formData.email || '')}
                 onChange={handleChange}
                 required={bookingSettings.formFields.requireEmail === true}
               />
             </div>
           )}
 
-          {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requirePhone !== false && (
+          {bookingSettings && bookingSettings.formFields && typeof bookingSettings.formFields.requirePhone !== 'undefined' && bookingSettings.formFields.requirePhone !== false && (
             <div className="booking-form-group">
               <label htmlFor="phone">Telefon {bookingSettings.formFields.requirePhone === true ? '*' : ''}</label>
               <input
                 type="tel"
                 id="phone"
                 name="phone"
-                value={formData.phone || ''}
+                value={String(formData.phone || '')}
                 onChange={handleChange}
                 required={bookingSettings.formFields.requirePhone === true}
               />
             </div>
           )}
 
-          {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.allowSpecialRequests !== false && (
+          {bookingSettings && bookingSettings.formFields && typeof bookingSettings.formFields.allowSpecialRequests !== 'undefined' && bookingSettings.formFields.allowSpecialRequests !== false && (
             <div className="booking-form-group full-width">
               <label htmlFor="specialRequests">Särskilda önskemål</label>
               <textarea
                 id="specialRequests"
                 name="specialRequests"
-                value={formData.specialRequests || ''}
+                value={String(formData.specialRequests || '')}
                 onChange={handleChange}
                 rows="3"
                 placeholder="Har du några särskilda önskemål?"
