@@ -12,7 +12,7 @@
  */
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://source-database-809785351172.europe-north1.run.app';
-const TENANT = import.meta.env.VITE_TENANT_ID || 'your-exact-tenant';
+const TENANT = import.meta.env.VITE_TENANT_ID || 'peranrestaurante';
 
 export default {
   baseURL: BASE_URL,

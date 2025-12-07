@@ -695,12 +695,14 @@ const BookingForm = () => {
     name: '',
     email: '',
     phone: '',
+    notes: '',
     specialRequests: '',
     bookingType: 'table' // 'table' or 'package'
   })
 
   const [services, setServices] = useState([])
   const [providers, setProviders] = useState([])
+  const [bookingSettings, setBookingSettings] = useState(null)
   const [availableSlots, setAvailableSlots] = useState([])
   const [bookedDates, setBookedDates] = useState([])
   const [loading, setLoading] = useState(true)
@@ -712,7 +714,9 @@ const BookingForm = () => {
   const servicesRef = useState(() => ({
     fetchServices: null,
     fetchProviders: null,
+    fetchBookingSettings: null,
     createBooking: null,
+    generateTimeSlots: null,
     generateAvailableSlots: null,
     fetchBookings: null,
     trackFormStart: null,
@@ -726,7 +730,9 @@ const BookingForm = () => {
         const bookingModule = await import('./services/booking');
         servicesRef.fetchServices = bookingModule.fetchServices;
         servicesRef.fetchProviders = bookingModule.fetchProviders;
+        servicesRef.fetchBookingSettings = bookingModule.fetchBookingSettings;
         servicesRef.createBooking = bookingModule.createBooking;
+        servicesRef.generateTimeSlots = bookingModule.generateTimeSlots;
         servicesRef.generateAvailableSlots = bookingModule.generateAvailableSlots;
         servicesRef.fetchBookings = bookingModule.fetchBookings;
       } catch (error) {
@@ -750,7 +756,7 @@ const BookingForm = () => {
     }
   }, [servicesRef])
 
-  // ✅ CRITICAL: Load services and providers on component mount
+  // ✅ CRITICAL: Load services, providers, and settings on component mount
   useEffect(() => {
     async function loadData() {
       setLoading(true)
@@ -759,17 +765,19 @@ const BookingForm = () => {
         await loadBookingServices()
         await loadAnalyticsServices()
         
-        if (!servicesRef.fetchServices || !servicesRef.fetchProviders) {
+        if (!servicesRef.fetchServices || !servicesRef.fetchProviders || !servicesRef.fetchBookingSettings) {
           throw new Error('Failed to load booking services')
         }
         
-        const [servicesData, providersData] = await Promise.all([
+        const [servicesData, providersData, settingsData] = await Promise.all([
           servicesRef.fetchServices(true),
-          servicesRef.fetchProviders(true)
+          servicesRef.fetchProviders(true),
+          servicesRef.fetchBookingSettings()
         ])
         
         setServices(servicesData)
         setProviders(providersData)
+        setBookingSettings(settingsData)
         
         // Track form start
         if (servicesRef.trackFormStart) {
@@ -786,10 +794,33 @@ const BookingForm = () => {
     loadData()
   }, [loadBookingServices, loadAnalyticsServices, servicesRef])
 
-  // ✅ CRITICAL: When service, provider, or date changes, check availability
+  // ✅ CRITICAL: Refresh settings periodically (every 5 minutes)
   useEffect(() => {
-    checkAvailability()
-  }, [checkAvailability])
+    if (!servicesRef.fetchBookingSettings) return
+
+    const refreshSettings = async () => {
+      try {
+        const newSettings = await servicesRef.fetchBookingSettings()
+        if (newSettings) {
+          setBookingSettings(newSettings)
+        }
+      } catch (error) {
+        console.error('Error refreshing settings:', error)
+      }
+    }
+    
+    refreshSettings()
+    const interval = setInterval(refreshSettings, 5 * 60 * 1000)
+    
+    return () => clearInterval(interval)
+  }, [servicesRef.fetchBookingSettings])
+
+  // ✅ CRITICAL: When service, date, provider, OR settings change, check availability
+  useEffect(() => {
+    if (formData.serviceId && formData.date && formData.providerId && bookingSettings) {
+      checkAvailability()
+    }
+  }, [formData.serviceId, formData.date, formData.providerId, bookingSettings])
 
   // Load booked dates for calendar display
   useEffect(() => {
@@ -829,14 +860,14 @@ const BookingForm = () => {
   }, [formData.providerId, loadBookingServices, servicesRef])
 
   const checkAvailability = useCallback(async () => {
-    if (!formData.serviceId || !formData.providerId || !formData.date) {
+    if (!formData.serviceId || !formData.providerId || !formData.date || !bookingSettings) {
       setAvailableSlots([])
       return
     }
 
     try {
       await loadBookingServices()
-      if (!servicesRef.generateAvailableSlots) {
+      if (!servicesRef.generateTimeSlots || !servicesRef.fetchBookings) {
         console.warn('Booking services not loaded yet')
         setAvailableSlots([])
         return
@@ -848,27 +879,26 @@ const BookingForm = () => {
         return
       }
 
-      const durationMin = selectedService.durationMin || 120 // Default 2 hours for restaurant
+      const durationMin = selectedService.durationMin || 120
       const selectedDate = new Date(formData.date)
       
-      // Generate available slots
-      const slots = await servicesRef.generateAvailableSlots(
-        selectedDate,
-        durationMin,
-        formData.providerId,
-        {
-          startHour: 12, // Restaurant hours: 12:00 - 21:00
-          endHour: 21,
-          intervalMin: 30
-        }
-      )
+      // Get bookings for the selected day
+      const dayStart = new Date(selectedDate)
+      dayStart.setHours(0, 0, 0, 0)
+      const dayEnd = new Date(selectedDate)
+      dayEnd.setHours(23, 59, 59, 999)
+      
+      const bookings = await servicesRef.fetchBookings(dayStart, dayEnd, formData.providerId)
+      
+      // ✅ CRITICAL: Generate available time slots using opening hours from settings
+      const slots = servicesRef.generateTimeSlots(selectedDate, durationMin, bookings, bookingSettings)
 
       setAvailableSlots(slots)
     } catch (error) {
       console.error('Error checking availability:', error)
       setAvailableSlots([])
     }
-  }, [formData.serviceId, formData.providerId, formData.date, services, loadBookingServices, servicesRef])
+  }, [formData.serviceId, formData.providerId, formData.date, bookingSettings, services, loadBookingServices, servicesRef])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -951,6 +981,7 @@ const BookingForm = () => {
           name: '',
           email: '',
           phone: '',
+          notes: '',
           specialRequests: '',
           bookingType: formData.bookingType
         })
@@ -1106,19 +1137,35 @@ const BookingForm = () => {
             )}
           </div>
 
-          <div className="booking-form-group">
-            <label htmlFor="guests">Antal personer</label>
-            <input
-              type="number"
-              id="guests"
-              name="guests"
-              value={formData.guests}
-              onChange={handleChange}
-              min="1"
-              max="12"
-              required
-            />
-          </div>
+          {bookingSettings?.formFields?.requirePartySize && (
+            <div className="booking-form-group">
+              <label htmlFor="guests">Gruppstorlek {bookingSettings.formFields.requirePartySize ? '*' : ''}</label>
+              <input
+                type="number"
+                id="guests"
+                name="guests"
+                value={formData.guests}
+                onChange={handleChange}
+                min="1"
+                max="12"
+                required={bookingSettings.formFields.requirePartySize}
+              />
+            </div>
+          )}
+
+          {bookingSettings?.formFields?.requireNotes && (
+            <div className="booking-form-group full-width">
+              <label htmlFor="notes">Anteckningar {bookingSettings.formFields.requireNotes ? '*' : ''}</label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes || ''}
+                onChange={handleChange}
+                required={bookingSettings.formFields.requireNotes}
+                rows="3"
+              />
+            </div>
+          )}
 
           <div className="booking-form-group">
             <label htmlFor="name">Namn</label>
@@ -1132,41 +1179,48 @@ const BookingForm = () => {
             />
           </div>
 
-          <div className="booking-form-group">
-            <label htmlFor="email">E-post</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          {/* ✅ CRITICAL: Use formFields from settings to conditionally show/require fields */}
+          {bookingSettings?.formFields?.requireEmail !== false && (
+            <div className="booking-form-group">
+              <label htmlFor="email">E-post {bookingSettings?.formFields?.requireEmail ? '*' : ''}</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required={bookingSettings?.formFields?.requireEmail}
+              />
+            </div>
+          )}
 
-          <div className="booking-form-group">
-            <label htmlFor="phone">Telefon</label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          {bookingSettings?.formFields?.requirePhone !== false && (
+            <div className="booking-form-group">
+              <label htmlFor="phone">Telefon {bookingSettings?.formFields?.requirePhone ? '*' : ''}</label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                required={bookingSettings?.formFields?.requirePhone}
+              />
+            </div>
+          )}
 
-          <div className="booking-form-group full-width">
-            <label htmlFor="specialRequests">Specialförfrågningar eller allergier</label>
-            <textarea
-              id="specialRequests"
-              name="specialRequests"
-              value={formData.specialRequests}
-              onChange={handleChange}
-              rows="4"
-              placeholder="Meddela oss om allergier eller särskilda önskemål..."
-            />
-          </div>
+          {bookingSettings?.formFields?.allowSpecialRequests !== false && (
+            <div className="booking-form-group full-width">
+              <label htmlFor="specialRequests">Särskilda önskemål</label>
+              <textarea
+                id="specialRequests"
+                name="specialRequests"
+                value={formData.specialRequests}
+                onChange={handleChange}
+                rows="3"
+                placeholder="Har du några särskilda önskemål?"
+              />
+            </div>
+          )}
         </div>
 
         <button 
