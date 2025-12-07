@@ -41,8 +41,8 @@ function BookingForm() {
     trackFormSubmit: null
   })
 
-  // Lazy load booking services
-  const loadBookingServices = useCallback(async () => {
+  // Lazy load booking services - defined as regular function to avoid useCallback initialization issues
+  const loadBookingServices = async () => {
     if (!servicesRef.current.fetchServices) {
       try {
         const bookingModule = await import('../services/booking');
@@ -58,10 +58,10 @@ function BookingForm() {
         throw error;
       }
     }
-  }, [])
+  }
 
-  // Lazy load analytics services
-  const loadAnalyticsServices = useCallback(async () => {
+  // Lazy load analytics services - defined as regular function to avoid useCallback initialization issues
+  const loadAnalyticsServices = async () => {
     if (!servicesRef.current.trackFormStart) {
       try {
         const analyticsModule = await import('../services/analytics');
@@ -72,7 +72,7 @@ function BookingForm() {
         // Don't throw - analytics is optional
       }
     }
-  }, [])
+  }
 
   // ✅ CRITICAL: Load services, providers, and settings on component mount
   useEffect(() => {
@@ -110,7 +110,7 @@ function BookingForm() {
     }
     
     loadData()
-  }, [loadBookingServices, loadAnalyticsServices])
+  }, [])
 
   // ✅ CRITICAL: Refresh settings periodically (every 5 minutes)
   useEffect(() => {
@@ -138,14 +138,14 @@ function BookingForm() {
     if (formData.serviceId && formData.date && formData.providerId && bookingSettings) {
       checkAvailability()
     }
-  }, [formData.serviceId, formData.date, formData.providerId, bookingSettings])
+  }, [formData.serviceId, formData.date, formData.providerId, bookingSettings, services])
 
   // Load booked dates for calendar display
   useEffect(() => {
     loadBookedDates()
-  }, [loadBookedDates])
+  }, [formData.providerId])
 
-  const loadBookedDates = useCallback(async () => {
+  const loadBookedDates = async () => {
     if (!formData.providerId) return
     
     try {
@@ -175,9 +175,9 @@ function BookingForm() {
     } catch (error) {
       console.error('Error loading booked dates:', error)
     }
-  }, [formData.providerId, loadBookingServices])
+  }
 
-  const checkAvailability = useCallback(async () => {
+  const checkAvailability = async () => {
     if (!formData.serviceId || !formData.providerId || !formData.date || !bookingSettings) {
       setAvailableSlots([])
       return
@@ -216,7 +216,7 @@ function BookingForm() {
       console.error('Error checking availability:', error)
       setAvailableSlots([])
     }
-  }, [formData.serviceId, formData.providerId, formData.date, bookingSettings, services, loadBookingServices])
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
