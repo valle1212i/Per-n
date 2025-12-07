@@ -300,8 +300,23 @@ function BookingForm() {
       
       const bookings = await servicesRef.current.fetchBookings(dayStart, dayEnd, providerId)
       
+      // Debug: Log what we're passing to generateTimeSlots
+      console.log('🔍 checkAvailability - calling generateTimeSlots with:', {
+        date: selectedDate.toISOString(),
+        durationMin,
+        bookingsCount: bookings.length,
+        bookingSettings: bookingSettings ? {
+          hasOpeningHours: !!bookingSettings.openingHours,
+          openingHoursKeys: bookingSettings.openingHours ? Object.keys(bookingSettings.openingHours) : null,
+          hasCalendarBehavior: !!bookingSettings.calendarBehavior,
+          settingsKeys: Object.keys(bookingSettings)
+        } : null
+      });
+      
       // ✅ CRITICAL: Generate available time slots using opening hours from settings
       const slots = servicesRef.current.generateTimeSlots(selectedDate, durationMin, bookings, bookingSettings)
+      
+      console.log('✅ Generated slots:', slots.length, 'available time slots');
 
       setAvailableSlots(slots)
     } catch (error) {

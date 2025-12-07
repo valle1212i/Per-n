@@ -454,9 +454,21 @@ export async function checkAvailability(start, end, providerId) {
 export function generateTimeSlots(date, durationMin, existingBookings, settings = null) {
   const slots = [];
   
+  // Debug: Log settings structure
+  console.log('🔍 generateTimeSlots called with:', {
+    date: date.toISOString(),
+    durationMin,
+    existingBookingsCount: existingBookings?.length || 0,
+    settings: settings ? Object.keys(settings) : null,
+    openingHours: settings?.openingHours,
+    calendarBehavior: settings?.calendarBehavior
+  });
+  
   // ✅ CRITICAL: Get day of week for day-specific opening hours
   const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][date.getDay()];
   const dayOpeningHours = settings?.openingHours?.[dayOfWeek];
+  
+  console.log('📅 Day of week:', dayOfWeek, 'Opening hours for this day:', dayOpeningHours);
   
   // ✅ CRITICAL: Use day-specific opening hours first, then fallback to calendarBehavior
   let startHour = null;
@@ -464,6 +476,7 @@ export function generateTimeSlots(date, durationMin, existingBookings, settings 
   
   if (dayOpeningHours && dayOpeningHours.isOpen !== false && dayOpeningHours.start && dayOpeningHours.end) {
     // ✅ PRIORITY 1: Use day-specific opening hours
+    console.log('✅ Using day-specific opening hours:', dayOpeningHours.start, '-', dayOpeningHours.end);
     const [startHours, startMinutes] = dayOpeningHours.start.split(':').map(Number);
     const [endHours, endMinutes] = dayOpeningHours.end.split(':').map(Number);
     
@@ -471,9 +484,11 @@ export function generateTimeSlots(date, durationMin, existingBookings, settings 
     endHour = endMinutes > 0 ? endHours + 1 : endHours + 1;
   } else if (dayOpeningHours?.isOpen === false) {
     // Business is closed on this day
+    console.log('❌ Business is closed on', dayOfWeek);
     return [];
   } else if (settings?.calendarBehavior?.startTime && settings?.calendarBehavior?.endTime) {
     // ✅ PRIORITY 2: Fallback to general calendarBehavior times
+    console.log('✅ Using calendarBehavior times:', settings.calendarBehavior.startTime, '-', settings.calendarBehavior.endTime);
     const [startHours] = settings.calendarBehavior.startTime.split(':').map(Number);
     const [endHours, endMinutes] = settings.calendarBehavior.endTime.split(':').map(Number);
     
@@ -483,9 +498,15 @@ export function generateTimeSlots(date, durationMin, existingBookings, settings 
   
   // ✅ CRITICAL: If no settings, return empty (don't show any slots)
   if (startHour === null || endHour === null) {
-    console.warn('⚠️ No opening hours configured - cannot generate time slots');
+    console.warn('⚠️ No opening hours configured - cannot generate time slots', {
+      dayOpeningHours,
+      calendarBehavior: settings?.calendarBehavior,
+      settingsKeys: settings ? Object.keys(settings) : 'settings is null'
+    });
     return [];
   }
+  
+  console.log('⏰ Generated time slots will be from', startHour, 'to', endHour);
   
   const slotInterval = settings?.calendarBehavior?.timeSlotInterval || 30;
   
