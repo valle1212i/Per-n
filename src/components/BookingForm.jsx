@@ -230,19 +230,24 @@ function BookingForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target
+    // Ensure value is always a string
+    const safeValue = String(value || '')
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: safeValue,
       // Reset time when service or provider changes
       ...(name === 'serviceId' || name === 'providerId' ? { time: '' } : {})
     }))
+    // Ensure error is always a string
     setError(null)
   }
 
   const handleDateSelect = (date) => {
+    // Ensure date is always a string
+    const safeDate = String(date || '')
     setFormData(prev => ({
       ...prev,
-      date,
+      date: safeDate,
       time: '' // Reset time when date changes
     }))
     setError(null)
@@ -379,7 +384,7 @@ function BookingForm() {
             <select
               id="serviceId"
               name="serviceId"
-              value={formData.serviceId}
+              value={String(formData.serviceId || '')}
               onChange={handleChange}
               required
             >
@@ -408,7 +413,7 @@ function BookingForm() {
             <select
               id="providerId"
               name="providerId"
-              value={formData.providerId}
+              value={String(formData.providerId || '')}
               onChange={handleChange}
               required
             >
@@ -444,7 +449,7 @@ function BookingForm() {
               <input
                 type="hidden"
                 name="date"
-                value={formData.date}
+                value={String(formData.date || '')}
                 required
               />
             )}
@@ -455,7 +460,7 @@ function BookingForm() {
             <select
               id="time"
               name="time"
-              value={formData.time}
+              value={String(formData.time || '')}
               onChange={handleChange}
               required
               disabled={availableSlots.length === 0 && formData.date !== ''}
@@ -575,7 +580,7 @@ function BookingForm() {
         <button 
           type="submit" 
           className="primary-btn booking-submit"
-          disabled={submitting || !formData.serviceId || !formData.providerId || !formData.date || !formData.time}
+          disabled={submitting || !String(formData.serviceId || '') || !String(formData.providerId || '') || !String(formData.date || '') || !String(formData.time || '')}
         >
           {submitting ? 'Skapar bokning...' : 'Bekräfta bokning'}
         </button>

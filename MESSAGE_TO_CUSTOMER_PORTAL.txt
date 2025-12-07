@@ -1,0 +1,25 @@
+Hi Customer Portal Team,
+
+We've successfully integrated the booking system frontend, but we're encountering 404 errors when trying to access the public booking API endpoints. The frontend is working correctly and making requests with the proper tenant header, but the endpoints are not responding.
+
+**API Endpoints Returning 404:**
+1. GET /api/system/booking/public/services?isActive=true
+2. GET /api/system/booking/public/providers?isActive=true  
+3. GET /api/system/booking/public/settings
+
+**Request Details:**
+- Base URL: https://source-database-809785351172.europe-north1.run.app
+- Tenant ID: peranrestaurante
+- Header: X-Tenant: peranrestaurante
+
+**Questions:**
+1. Are these public endpoints deployed and available?
+2. Is the base URL correct?
+3. Is the tenant ID "peranrestaurante" correctly configured?
+4. Are there any authentication or CORS requirements we're missing?
+5. Should the endpoint paths be different?
+
+The frontend is ready and will automatically work once the API endpoints are available. Please let us know the status of these endpoints or if we need to adjust the configuration.
+
+Thanks!
+
