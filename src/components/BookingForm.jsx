@@ -35,20 +35,21 @@ function BookingForm() {
   const formLabels = industryTerminology?.formLabels || {}
   const terms = industryTerminology?.terminology || {}
   
-  // Determine if this is a restaurant booking (restaurants don't need service/provider selectors)
-  // Check if businessType is 'restaurant' or if we have restaurant-specific labels
-  const isRestaurant = bookingSettings?.businessType === 'restaurant' || 
-                       formLabels.partySize !== undefined ||
-                       (formLabels.selectService && formLabels.selectService.includes('bordstorlek'))
+  // ✅ CORRECT: Determine if this is a restaurant booking
+  // Check industryTerminology.businessType (recommended) or formLabels.partySize
+  // The API returns businessType in industryTerminology, not in settings
+  const isRestaurant = industryTerminology?.businessType === 'restaurant' || 
+                       !!formLabels.partySize ||
+                       bookingSettings?.businessType === 'restaurant' // Fallback: will work after API auto-updates
   
   // Debug: Log restaurant detection
   console.log('🔍 Restaurant detection:', {
     isRestaurant,
-    businessType: bookingSettings?.businessType,
-    hasPartySize: formLabels.partySize !== undefined,
+    industryTerminologyBusinessType: industryTerminology?.businessType,
+    settingsBusinessType: bookingSettings?.businessType,
+    hasPartySize: !!formLabels.partySize,
     partySize: formLabels.partySize,
-    selectService: formLabels.selectService,
-    bookingSettingsKeys: bookingSettings ? Object.keys(bookingSettings) : null
+    selectService: formLabels.selectService
   })
   
   // Helper functions to get labels with fallbacks
