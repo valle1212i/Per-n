@@ -28,6 +28,18 @@ function BookingForm() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
 
+  // Extract industry terminology from settings with fallbacks
+  const terminology = bookingSettings?.industryTerminology || {}
+  const formLabels = terminology?.formLabels || {}
+  const terms = terminology?.terminology || {}
+  
+  // Helper functions to get labels with fallbacks
+  const getServiceLabel = () => formLabels.selectService || 'Tjänst'
+  const getProviderLabel = () => formLabels.selectProvider || 'Personal'
+  const getTimeLabel = () => formLabels.selectTime || 'Tid'
+  const getServiceTerm = () => terms.service || 'tjänst'
+  const getProviderTerm = () => terms.provider || 'personal'
+
   // Store loaded services in refs to avoid re-initialization
   const servicesRef = useRef({
     fetchServices: null,
@@ -267,7 +279,10 @@ function BookingForm() {
 
       const selectedService = services.find(s => s._id === formData.serviceId)
       if (!selectedService) {
-        throw new Error('Ogiltig tjänst vald')
+        const terminology = bookingSettings?.industryTerminology || {}
+        const terms = terminology?.terminology || {}
+        const serviceTerm = terms.service || 'tjänst'
+        throw new Error(`Ogiltig ${serviceTerm} vald`)
       }
 
       // Build booking date/time
@@ -380,7 +395,7 @@ function BookingForm() {
 
         <div className="booking-form-grid">
           <div className="booking-form-group">
-            <label htmlFor="serviceId">Välj tjänst *</label>
+            <label htmlFor="serviceId">{getServiceLabel()} *</label>
             <select
               id="serviceId"
               name="serviceId"
@@ -388,7 +403,7 @@ function BookingForm() {
               onChange={handleChange}
               required
             >
-              <option value="">Välj tjänst...</option>
+              <option value="">Välj {getServiceTerm()}...</option>
               {Array.isArray(services) && services.map((service) => {
                 if (!service || typeof service !== 'object') return null
                 const serviceId = String(service._id || '')
@@ -403,13 +418,13 @@ function BookingForm() {
             </select>
             {(!Array.isArray(services) || services.length === 0) && !loading && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
-                Inga tjänster tillgängliga. Kontakta restaurangen för bokning.
+                Inga {getServiceTerm()}er tillgängliga. Kontakta restaurangen för bokning.
               </p>
             )}
           </div>
 
           <div className="booking-form-group">
-            <label htmlFor="providerId">Välj personal/område *</label>
+            <label htmlFor="providerId">{getProviderLabel()} *</label>
             <select
               id="providerId"
               name="providerId"
@@ -417,7 +432,7 @@ function BookingForm() {
               onChange={handleChange}
               required
             >
-              <option value="">Välj personal/område...</option>
+              <option value="">Välj {getProviderTerm().toLowerCase()}...</option>
               {Array.isArray(providers) && providers.map((provider) => {
                 if (!provider || typeof provider !== 'object') return null
                 const providerId = String(provider._id || '')
@@ -431,7 +446,7 @@ function BookingForm() {
             </select>
             {(!Array.isArray(providers) || providers.length === 0) && !loading && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
-                Ingen personal tillgänglig. Kontakta restaurangen för bokning.
+                Ingen {getProviderTerm().toLowerCase()} tillgänglig. Kontakta restaurangen för bokning.
               </p>
             )}
           </div>
@@ -456,7 +471,7 @@ function BookingForm() {
           </div>
 
           <div className="booking-form-group">
-            <label htmlFor="time">Tid *</label>
+            <label htmlFor="time">{getTimeLabel()} *</label>
             <select
               id="time"
               name="time"
@@ -468,7 +483,7 @@ function BookingForm() {
               <option value="">
                 {availableSlots.length === 0 && formData.date !== '' 
                   ? 'Inga lediga tider för detta datum' 
-                  : 'Välj tid'}
+                  : `Välj ${getTimeLabel().toLowerCase()}`}
               </option>
               {Array.isArray(availableSlots) && availableSlots.map((slot, index) => {
                 if (!slot || typeof slot !== 'object') return null
