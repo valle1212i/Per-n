@@ -41,6 +41,16 @@ function BookingForm() {
                        formLabels.partySize !== undefined ||
                        (formLabels.selectService && formLabels.selectService.includes('bordstorlek'))
   
+  // Debug: Log restaurant detection
+  console.log('🔍 Restaurant detection:', {
+    isRestaurant,
+    businessType: bookingSettings?.businessType,
+    hasPartySize: formLabels.partySize !== undefined,
+    partySize: formLabels.partySize,
+    selectService: formLabels.selectService,
+    bookingSettingsKeys: bookingSettings ? Object.keys(bookingSettings) : null
+  })
+  
   // Helper functions to get labels with fallbacks
   // ✅ CORRECT: Using formLabels.selectService (e.g., "Välj bordstorlek" for restaurants)
   const getServiceLabel = () => {
