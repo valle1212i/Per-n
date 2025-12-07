@@ -28,23 +28,32 @@ function BookingForm() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
 
-  // Extract industry terminology from settings with fallbacks
-  // ✅ CRITICAL: Use formLabels.selectService and formLabels.selectProvider (NOT terminology.servicePlural or terminology.provider)
-  const terminology = bookingSettings?.industryTerminology || {}
-  const formLabels = terminology?.formLabels || {}
-  const terms = terminology?.terminology || {}
+  // ✅ CORRECT: Extract industryTerminology from root level (not from inside settings)
+  // The API returns: { success: true, settings: {...}, industryTerminology: {...} }
+  // So industryTerminology is at the root level, not inside settings
+  const industryTerminology = bookingSettings?.industryTerminology || {}
+  const formLabels = industryTerminology?.formLabels || {}
+  const terms = industryTerminology?.terminology || {}
   
   // Helper functions to get labels with fallbacks
   // ✅ CORRECT: Using formLabels.selectService (e.g., "Välj bordstorlek" for restaurants)
   const getServiceLabel = () => {
-    const label = formLabels.selectService || formLabels.formLabelService || 'Tjänst'
-    console.log('Service label from API:', label, 'formLabels:', formLabels)
+    const label = formLabels.selectService || 'Tjänst'
+    if (!formLabels.selectService) {
+      console.warn('⚠️ formLabels.selectService is missing, using fallback:', label)
+    } else {
+      console.log('✅ Service label from API:', label)
+    }
     return label
   }
   // ✅ CORRECT: Using formLabels.selectProvider (e.g., "Välj serveringspersonal" for restaurants)
   const getProviderLabel = () => {
-    const label = formLabels.selectProvider || formLabels.formLabelProvider || 'Personal'
-    console.log('Provider label from API:', label, 'formLabels:', formLabels)
+    const label = formLabels.selectProvider || 'Personal'
+    if (!formLabels.selectProvider) {
+      console.warn('⚠️ formLabels.selectProvider is missing, using fallback:', label)
+    } else {
+      console.log('✅ Provider label from API:', label)
+    }
     return label
   }
   const getTimeLabel = () => formLabels.selectTime || 'Tid'

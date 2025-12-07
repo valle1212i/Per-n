@@ -118,17 +118,30 @@ export async function fetchBookingSettings() {
     
     // Debug: Log the full response structure
     console.log('Settings API response:', JSON.stringify(data, null, 2));
+    console.log('Response keys:', Object.keys(data));
+    console.log('Has industryTerminology at root?', 'industryTerminology' in data);
     
     if (data.success && data.settings) {
-      // Debug: Log the settings structure
+      // ✅ CORRECT: industryTerminology is at root level, not inside settings
+      const industryTerminology = data.industryTerminology;
+      
+      // Debug: Log the settings and industryTerminology structure
       console.log('Settings object:', data.settings);
-      console.log('Industry terminology:', data.settings.industryTerminology);
-      if (data.settings.industryTerminology) {
-        console.log('Form labels:', data.settings.industryTerminology.formLabels);
-        console.log('Service label:', data.settings.industryTerminology.formLabels?.selectService);
-        console.log('Provider label:', data.settings.industryTerminology.formLabels?.selectProvider);
+      console.log('Industry terminology (from root):', industryTerminology);
+      if (industryTerminology) {
+        console.log('Form labels:', industryTerminology.formLabels);
+        console.log('Service label:', industryTerminology.formLabels?.selectService);
+        console.log('Provider label:', industryTerminology.formLabels?.selectProvider);
+      } else {
+        console.warn('⚠️ industryTerminology is undefined at root level!');
       }
-      return data.settings;
+      
+      // Return both settings and industryTerminology merged together
+      // This way BookingForm can access both settings and industryTerminology
+      return {
+        ...data.settings,
+        industryTerminology: industryTerminology || null
+      };
     }
     
     return null;
