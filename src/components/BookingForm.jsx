@@ -217,12 +217,22 @@ function BookingForm() {
   }, [formData.serviceId, formData.date, formData.providerId, bookingSettings, services, isRestaurant])
 
   // Load booked dates for calendar display
+  // For restaurants, don't require providerId
   useEffect(() => {
-    loadBookedDates()
-  }, [formData.providerId])
+    if (isRestaurant) {
+      // For restaurants, load all booked dates (no provider filter)
+      loadBookedDates()
+    } else {
+      // For other business types, only load if providerId is selected
+      if (formData.providerId) {
+        loadBookedDates()
+      }
+    }
+  }, [formData.providerId, isRestaurant])
 
   const loadBookedDates = async () => {
-    if (!formData.providerId) return
+    // For restaurants, don't require providerId
+    if (!isRestaurant && !formData.providerId) return
     
     try {
       await loadBookingServices()
@@ -235,7 +245,9 @@ function BookingForm() {
       const futureDate = new Date()
       futureDate.setDate(today.getDate() + 60) // Next 60 days
       
-      const bookings = await servicesRef.current.fetchBookings(today, futureDate, formData.providerId)
+      // For restaurants, don't filter by providerId
+      const providerId = isRestaurant ? null : formData.providerId
+      const bookings = await servicesRef.current.fetchBookings(today, futureDate, providerId)
       
       // Extract unique dates that have bookings
       const booked = new Set()
@@ -582,7 +594,7 @@ function BookingForm() {
               value={String(formData.time || '')}
               onChange={handleChange}
               required
-              disabled={availableSlots.length === 0 && formData.date !== '' && (isRestaurant || (formData.serviceId && formData.providerId))}
+              disabled={availableSlots.length === 0 && formData.date !== ''}
             >
               <option value="">
                 {availableSlots.length === 0 && formData.date !== '' 
@@ -603,7 +615,7 @@ function BookingForm() {
                 )
               })}
             </select>
-            {formData.date && availableSlots.length === 0 && (isRestaurant || (formData.serviceId && formData.providerId)) && (
+            {formData.date && availableSlots.length === 0 && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
                 Inga lediga tider för detta datum. Välj ett annat datum.
               </p>
