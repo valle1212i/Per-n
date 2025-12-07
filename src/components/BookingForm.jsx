@@ -57,6 +57,12 @@ function BookingForm() {
     return label
   }
   const getTimeLabel = () => formLabels.selectTime || 'Tid'
+  // ✅ Restaurant-specific: Party size label (e.g., "Antal personer")
+  const getPartySizeLabel = () => formLabels.partySize || 'Gruppstorlek'
+  // ✅ Restaurant-specific: Notes label (e.g., "Allergier eller särskilda önskemål")
+  const getNotesLabel = () => formLabels.notes || 'Anteckningar'
+  // ✅ Restaurant-specific: Customer name label (e.g., "Namn")
+  const getCustomerNameLabel = () => formLabels.customerName || 'Namn'
   const getServiceTerm = () => terms.service || 'tjänst'
   const getProviderTerm = () => terms.provider || 'personal'
 
@@ -539,7 +545,7 @@ function BookingForm() {
 
           {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requirePartySize === true && (
             <div className="booking-form-group">
-              <label htmlFor="guests">Gruppstorlek *</label>
+              <label htmlFor="guests">{getPartySizeLabel()} *</label>
               <input
                 type="number"
                 id="guests"
@@ -547,15 +553,16 @@ function BookingForm() {
                 value={Number(formData.guests) || 2}
                 onChange={handleChange}
                 min="1"
-                max="12"
+                max="20"
                 required
+                placeholder={getPartySizeLabel()}
               />
             </div>
           )}
 
           {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requireNotes === true && (
             <div className="booking-form-group full-width">
-              <label htmlFor="notes">Anteckningar *</label>
+              <label htmlFor="notes">{getNotesLabel()} *</label>
               <textarea
                 id="notes"
                 name="notes"
@@ -563,12 +570,13 @@ function BookingForm() {
                 onChange={handleChange}
                 required
                 rows="3"
+                placeholder={getNotesLabel()}
               />
             </div>
           )}
 
           <div className="booking-form-group">
-            <label htmlFor="name">Namn</label>
+            <label htmlFor="name">{getCustomerNameLabel()} *</label>
             <input
               type="text"
               id="name"
@@ -576,6 +584,7 @@ function BookingForm() {
               value={formData.name || ''}
               onChange={handleChange}
               required
+              placeholder={getCustomerNameLabel()}
             />
           </div>
 
