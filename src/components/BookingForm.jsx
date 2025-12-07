@@ -93,9 +93,11 @@ function BookingForm() {
           servicesRef.current.fetchBookingSettings()
         ])
         
-        setServices(servicesData)
-        setProviders(providersData)
-        setBookingSettings(settingsData)
+        // Ensure we're setting arrays, not objects or undefined
+        setServices(Array.isArray(servicesData) ? servicesData : [])
+        setProviders(Array.isArray(providersData) ? providersData : [])
+        // Ensure settings is an object or null, never undefined
+        setBookingSettings(settingsData && typeof settingsData === 'object' ? settingsData : null)
         
         // Track form start
         if (servicesRef.current.trackFormStart) {
@@ -119,7 +121,7 @@ function BookingForm() {
     const refreshSettings = async () => {
       try {
         const newSettings = await servicesRef.current.fetchBookingSettings()
-        if (newSettings) {
+        if (newSettings && typeof newSettings === 'object') {
           setBookingSettings(newSettings)
         }
       } catch (error) {
@@ -457,9 +459,9 @@ function BookingForm() {
             )}
           </div>
 
-          {bookingSettings?.formFields?.requirePartySize && (
+          {bookingSettings?.formFields?.requirePartySize === true && (
             <div className="booking-form-group">
-              <label htmlFor="guests">Gruppstorlek {bookingSettings.formFields.requirePartySize ? '*' : ''}</label>
+              <label htmlFor="guests">Gruppstorlek *</label>
               <input
                 type="number"
                 id="guests"
@@ -468,20 +470,20 @@ function BookingForm() {
                 onChange={handleChange}
                 min="1"
                 max="12"
-                required={bookingSettings.formFields.requirePartySize}
+                required
               />
             </div>
           )}
 
-          {bookingSettings?.formFields?.requireNotes && (
+          {bookingSettings?.formFields?.requireNotes === true && (
             <div className="booking-form-group full-width">
-              <label htmlFor="notes">Anteckningar {bookingSettings.formFields.requireNotes ? '*' : ''}</label>
+              <label htmlFor="notes">Anteckningar *</label>
               <textarea
                 id="notes"
                 name="notes"
                 value={formData.notes || ''}
                 onChange={handleChange}
-                required={bookingSettings.formFields.requireNotes}
+                required
                 rows="3"
               />
             </div>
@@ -500,41 +502,41 @@ function BookingForm() {
           </div>
 
           {/* ✅ CRITICAL: Use formFields from settings to conditionally show/require fields */}
-          {bookingSettings?.formFields?.requireEmail !== false && (
+          {(bookingSettings?.formFields?.requireEmail !== false && bookingSettings?.formFields?.requireEmail !== undefined) && (
             <div className="booking-form-group">
-              <label htmlFor="email">E-post {bookingSettings?.formFields?.requireEmail ? '*' : ''}</label>
+              <label htmlFor="email">E-post {bookingSettings?.formFields?.requireEmail === true ? '*' : ''}</label>
               <input
                 type="email"
                 id="email"
                 name="email"
-                value={formData.email}
+                value={formData.email || ''}
                 onChange={handleChange}
-                required={bookingSettings?.formFields?.requireEmail}
+                required={bookingSettings?.formFields?.requireEmail === true}
               />
             </div>
           )}
 
-          {bookingSettings?.formFields?.requirePhone !== false && (
+          {(bookingSettings?.formFields?.requirePhone !== false && bookingSettings?.formFields?.requirePhone !== undefined) && (
             <div className="booking-form-group">
-              <label htmlFor="phone">Telefon {bookingSettings?.formFields?.requirePhone ? '*' : ''}</label>
+              <label htmlFor="phone">Telefon {bookingSettings?.formFields?.requirePhone === true ? '*' : ''}</label>
               <input
                 type="tel"
                 id="phone"
                 name="phone"
-                value={formData.phone}
+                value={formData.phone || ''}
                 onChange={handleChange}
-                required={bookingSettings?.formFields?.requirePhone}
+                required={bookingSettings?.formFields?.requirePhone === true}
               />
             </div>
           )}
 
-          {bookingSettings?.formFields?.allowSpecialRequests !== false && (
+          {(bookingSettings?.formFields?.allowSpecialRequests !== false && bookingSettings?.formFields?.allowSpecialRequests !== undefined) && (
             <div className="booking-form-group full-width">
               <label htmlFor="specialRequests">Särskilda önskemål</label>
               <textarea
                 id="specialRequests"
                 name="specialRequests"
-                value={formData.specialRequests}
+                value={formData.specialRequests || ''}
                 onChange={handleChange}
                 rows="3"
                 placeholder="Har du några särskilda önskemål?"
