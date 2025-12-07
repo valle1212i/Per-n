@@ -35,6 +35,12 @@ function BookingForm() {
   const formLabels = industryTerminology?.formLabels || {}
   const terms = industryTerminology?.terminology || {}
   
+  // Determine if this is a restaurant booking (restaurants don't need service/provider selectors)
+  // Check if businessType is 'restaurant' or if we have restaurant-specific labels
+  const isRestaurant = bookingSettings?.businessType === 'restaurant' || 
+                       formLabels.partySize !== undefined ||
+                       (formLabels.selectService && formLabels.selectService.includes('bordstorlek'))
+  
   // Helper functions to get labels with fallbacks
   // ✅ CORRECT: Using formLabels.selectService (e.g., "Välj bordstorlek" for restaurants)
   const getServiceLabel = () => {
@@ -191,13 +197,24 @@ function BookingForm() {
   }, [])
 
   // ✅ CRITICAL: When service, date, provider, OR settings change, check availability
+  // For restaurants, only need date (serviceId and providerId are optional)
   useEffect(() => {
-    if (formData.serviceId && formData.date && formData.providerId && bookingSettings && services && services.length > 0) {
-      checkAvailability()
+    if (isRestaurant) {
+      // For restaurants, check availability with just date
+      if (formData.date && bookingSettings) {
+        checkAvailability()
+      } else {
+        setAvailableSlots([])
+      }
     } else {
-      setAvailableSlots([])
+      // For other business types, require serviceId and providerId
+      if (formData.serviceId && formData.date && formData.providerId && bookingSettings && services && services.length > 0) {
+        checkAvailability()
+      } else {
+        setAvailableSlots([])
+      }
     }
-  }, [formData.serviceId, formData.date, formData.providerId, bookingSettings, services])
+  }, [formData.serviceId, formData.date, formData.providerId, bookingSettings, services, isRestaurant])
 
   // Load booked dates for calendar display
   useEffect(() => {
@@ -237,9 +254,18 @@ function BookingForm() {
   }
 
   const checkAvailability = async () => {
-    if (!formData.serviceId || !formData.providerId || !formData.date || !bookingSettings) {
-      setAvailableSlots([])
-      return
+    // For restaurants, only date is required
+    if (isRestaurant) {
+      if (!formData.date || !bookingSettings) {
+        setAvailableSlots([])
+        return
+      }
+    } else {
+      // For other business types, require serviceId and providerId
+      if (!formData.serviceId || !formData.providerId || !formData.date || !bookingSettings) {
+        setAvailableSlots([])
+        return
+      }
     }
 
     try {
@@ -250,13 +276,20 @@ function BookingForm() {
         return
       }
       
-      const selectedService = services.find(s => s._id === formData.serviceId)
-      if (!selectedService) {
-        setAvailableSlots([])
-        return
+      // For restaurants, use default duration (120 minutes) and no provider filter
+      let durationMin = 120
+      let providerId = null
+      
+      if (!isRestaurant) {
+        const selectedService = services.find(s => s._id === formData.serviceId)
+        if (!selectedService) {
+          setAvailableSlots([])
+          return
+        }
+        durationMin = selectedService.durationMin || 120
+        providerId = formData.providerId
       }
 
-      const durationMin = selectedService.durationMin || 120
       const selectedDate = new Date(formData.date)
       
       // Get bookings for the selected day
@@ -265,7 +298,7 @@ function BookingForm() {
       const dayEnd = new Date(selectedDate)
       dayEnd.setHours(23, 59, 59, 999)
       
-      const bookings = await servicesRef.current.fetchBookings(dayStart, dayEnd, formData.providerId)
+      const bookings = await servicesRef.current.fetchBookings(dayStart, dayEnd, providerId)
       
       // ✅ CRITICAL: Generate available time slots using opening hours from settings
       const slots = servicesRef.current.generateTimeSlots(selectedDate, durationMin, bookings, bookingSettings)
@@ -310,16 +343,16 @@ function BookingForm() {
 
     try {
       // Validate required fields
-      if (!formData.serviceId || !formData.providerId || !formData.date || !formData.time) {
-        throw new Error('Vänligen fyll i alla obligatoriska fält')
-      }
-
-      const selectedService = services.find(s => s._id === formData.serviceId)
-      if (!selectedService) {
-        const terminology = bookingSettings?.industryTerminology || {}
-        const terms = terminology?.terminology || {}
-        const serviceTerm = terms.service || 'tjänst'
-        throw new Error(`Ogiltig ${serviceTerm} vald`)
+      // For restaurants, only date, time, and name are required
+      if (isRestaurant) {
+        if (!formData.date || !formData.time || !formData.name) {
+          throw new Error('Vänligen fyll i alla obligatoriska fält')
+        }
+      } else {
+        // For other business types, require serviceId and providerId
+        if (!formData.serviceId || !formData.providerId || !formData.date || !formData.time) {
+          throw new Error('Vänligen fyll i alla obligatoriska fält')
+        }
       }
 
       // Build booking date/time
@@ -327,7 +360,20 @@ function BookingForm() {
       const [hours, minutes] = formData.time.split(':')
       bookingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
 
-      const durationMin = selectedService.durationMin || 120
+      // For restaurants, use default duration (120 minutes)
+      // For other business types, get duration from selected service
+      let durationMin = 120
+      if (!isRestaurant) {
+        const selectedService = services.find(s => s._id === formData.serviceId)
+        if (!selectedService) {
+          const terminology = bookingSettings?.industryTerminology || {}
+          const terms = terminology?.terminology || {}
+          const serviceTerm = terms.service || 'tjänst'
+          throw new Error(`Ogiltig ${serviceTerm} vald`)
+        }
+        durationMin = selectedService.durationMin || 120
+      }
+
       const bookingEnd = new Date(bookingDate)
       bookingEnd.setMinutes(bookingEnd.getMinutes() + durationMin)
 
@@ -338,9 +384,10 @@ function BookingForm() {
       }
 
       // Create booking
+      // For restaurants, serviceId and providerId are optional (can be null or use defaults)
       const result = await servicesRef.current.createBooking({
-        serviceId: formData.serviceId,
-        providerId: formData.providerId,
+        serviceId: isRestaurant ? null : formData.serviceId,
+        providerId: isRestaurant ? null : formData.providerId,
         start: bookingDate,
         end: bookingEnd,
         customerName: formData.name,
@@ -431,62 +478,67 @@ function BookingForm() {
         )}
 
         <div className="booking-form-grid">
-          <div className="booking-form-group">
-            <label htmlFor="serviceId">{getServiceLabel()} *</label>
-            <select
-              id="serviceId"
-              name="serviceId"
-              value={String(formData.serviceId || '')}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Välj {getServiceTerm()}...</option>
-              {Array.isArray(services) && services.map((service) => {
-                if (!service || typeof service !== 'object') return null
-                const serviceId = String(service._id || '')
-                const serviceName = String(service.name || 'Unknown')
-                const duration = service.durationMin ? `(${Number(service.durationMin)} min)` : ''
-                return (
-                  <option key={serviceId || Math.random()} value={serviceId}>
-                    {serviceName} {duration}
-                  </option>
-                )
-              })}
-            </select>
-            {(!Array.isArray(services) || services.length === 0) && !loading && (
-              <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
-                Inga {getServiceTerm()}er tillgängliga. Kontakta restaurangen för bokning.
-              </p>
-            )}
-          </div>
+          {/* ✅ For restaurants, hide service/provider selectors - they're not needed */}
+          {!isRestaurant && (
+            <>
+              <div className="booking-form-group">
+                <label htmlFor="serviceId">{getServiceLabel()} *</label>
+                <select
+                  id="serviceId"
+                  name="serviceId"
+                  value={String(formData.serviceId || '')}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Välj {getServiceTerm()}...</option>
+                  {Array.isArray(services) && services.map((service) => {
+                    if (!service || typeof service !== 'object') return null
+                    const serviceId = String(service._id || '')
+                    const serviceName = String(service.name || 'Unknown')
+                    const duration = service.durationMin ? `(${Number(service.durationMin)} min)` : ''
+                    return (
+                      <option key={serviceId || Math.random()} value={serviceId}>
+                        {serviceName} {duration}
+                      </option>
+                    )
+                  })}
+                </select>
+                {(!Array.isArray(services) || services.length === 0) && !loading && (
+                  <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
+                    Inga {getServiceTerm()}er tillgängliga. Kontakta restaurangen för bokning.
+                  </p>
+                )}
+              </div>
 
-          <div className="booking-form-group">
-            <label htmlFor="providerId">{getProviderLabel()} *</label>
-            <select
-              id="providerId"
-              name="providerId"
-              value={String(formData.providerId || '')}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Välj {getProviderTerm().toLowerCase()}...</option>
-              {Array.isArray(providers) && providers.map((provider) => {
-                if (!provider || typeof provider !== 'object') return null
-                const providerId = String(provider._id || '')
-                const providerName = String(provider.name || 'Unknown')
-                return (
-                  <option key={providerId || Math.random()} value={providerId}>
-                    {providerName}
-                  </option>
-                )
-              })}
-            </select>
-            {(!Array.isArray(providers) || providers.length === 0) && !loading && (
-              <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
-                Ingen {getProviderTerm().toLowerCase()} tillgänglig. Kontakta restaurangen för bokning.
-              </p>
-            )}
-          </div>
+              <div className="booking-form-group">
+                <label htmlFor="providerId">{getProviderLabel()} *</label>
+                <select
+                  id="providerId"
+                  name="providerId"
+                  value={String(formData.providerId || '')}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Välj {getProviderTerm().toLowerCase()}...</option>
+                  {Array.isArray(providers) && providers.map((provider) => {
+                    if (!provider || typeof provider !== 'object') return null
+                    const providerId = String(provider._id || '')
+                    const providerName = String(provider.name || 'Unknown')
+                    return (
+                      <option key={providerId || Math.random()} value={providerId}>
+                        {providerName}
+                      </option>
+                    )
+                  })}
+                </select>
+                {(!Array.isArray(providers) || providers.length === 0) && !loading && (
+                  <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
+                    Ingen {getProviderTerm().toLowerCase()} tillgänglig. Kontakta restaurangen för bokning.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="booking-form-group full-width">
             <label>Välj datum *</label>
@@ -515,7 +567,7 @@ function BookingForm() {
               value={String(formData.time || '')}
               onChange={handleChange}
               required
-              disabled={availableSlots.length === 0 && formData.date !== ''}
+              disabled={availableSlots.length === 0 && formData.date !== '' && (isRestaurant || (formData.serviceId && formData.providerId))}
             >
               <option value="">
                 {availableSlots.length === 0 && formData.date !== '' 
@@ -536,7 +588,7 @@ function BookingForm() {
                 )
               })}
             </select>
-            {formData.date && availableSlots.length === 0 && formData.serviceId && formData.providerId && (
+            {formData.date && availableSlots.length === 0 && (isRestaurant || (formData.serviceId && formData.providerId)) && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
                 Inga lediga tider för detta datum. Välj ett annat datum.
               </p>
@@ -635,7 +687,7 @@ function BookingForm() {
         <button 
           type="submit" 
           className="primary-btn booking-submit"
-          disabled={submitting || !String(formData.serviceId || '') || !String(formData.providerId || '') || !String(formData.date || '') || !String(formData.time || '')}
+          disabled={submitting || !String(formData.date || '') || !String(formData.time || '') || (isRestaurant ? !String(formData.name || '') : (!String(formData.serviceId || '') || !String(formData.providerId || '')))}
         >
           {submitting ? 'Skapar bokning...' : 'Bekräfta bokning'}
         </button>
