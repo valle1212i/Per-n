@@ -29,13 +29,24 @@ function BookingForm() {
   const [success, setSuccess] = useState(false)
 
   // Extract industry terminology from settings with fallbacks
+  // ✅ CRITICAL: Use formLabels.selectService and formLabels.selectProvider (NOT terminology.servicePlural or terminology.provider)
   const terminology = bookingSettings?.industryTerminology || {}
   const formLabels = terminology?.formLabels || {}
   const terms = terminology?.terminology || {}
   
   // Helper functions to get labels with fallbacks
-  const getServiceLabel = () => formLabels.selectService || 'Tjänst'
-  const getProviderLabel = () => formLabels.selectProvider || 'Personal'
+  // ✅ CORRECT: Using formLabels.selectService (e.g., "Välj bordstorlek" for restaurants)
+  const getServiceLabel = () => {
+    const label = formLabels.selectService || formLabels.formLabelService || 'Tjänst'
+    console.log('Service label from API:', label, 'formLabels:', formLabels)
+    return label
+  }
+  // ✅ CORRECT: Using formLabels.selectProvider (e.g., "Välj serveringspersonal" for restaurants)
+  const getProviderLabel = () => {
+    const label = formLabels.selectProvider || formLabels.formLabelProvider || 'Personal'
+    console.log('Provider label from API:', label, 'formLabels:', formLabels)
+    return label
+  }
   const getTimeLabel = () => formLabels.selectTime || 'Tid'
   const getServiceTerm = () => terms.service || 'tjänst'
   const getProviderTerm = () => terms.provider || 'personal'
