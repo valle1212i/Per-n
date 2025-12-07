@@ -5,7 +5,14 @@
  * and error handling
  */
 import { useState, useEffect, useCallback } from 'react'
-import { fetchServices, fetchProviders, fetchBookings } from '../services/booking'
+// Lazy import to avoid circular dependencies
+let bookingModule = null;
+async function loadBookingModule() {
+  if (!bookingModule) {
+    bookingModule = await import('../services/booking');
+  }
+  return bookingModule;
+}
 
 /**
  * Custom hook for managing booking data
@@ -31,9 +38,10 @@ export function useBookingData(options = {}) {
     setError(null)
 
     try {
+      const booking = await loadBookingModule();
       const [servicesData, providersData] = await Promise.all([
-        fetchServices(true),
-        fetchProviders(true)
+        booking.fetchServices(true),
+        booking.fetchProviders(true)
       ])
 
       setServices(servicesData)
@@ -72,7 +80,8 @@ export function useBookingData(options = {}) {
    */
   const getBookings = useCallback(async (fromDate, toDate, providerId = null) => {
     try {
-      return await fetchBookings(fromDate, toDate, providerId)
+      const booking = await loadBookingModule();
+      return await booking.fetchBookings(fromDate, toDate, providerId)
     } catch (err) {
       console.error('Error fetching bookings:', err)
       return []
