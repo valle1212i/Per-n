@@ -111,6 +111,17 @@ function BookingForm() {
         // Ensure settings is an object or null, never undefined
         setBookingSettings(settingsData && typeof settingsData === 'object' ? settingsData : null)
         
+        // Debug: Log the settings structure to verify industryTerminology
+        if (settingsData && typeof settingsData === 'object') {
+          console.log('Booking settings loaded:', settingsData)
+          console.log('Industry terminology:', settingsData.industryTerminology)
+          if (settingsData.industryTerminology) {
+            console.log('Form labels:', settingsData.industryTerminology.formLabels)
+            console.log('Service label:', settingsData.industryTerminology.formLabels?.selectService)
+            console.log('Provider label:', settingsData.industryTerminology.formLabels?.selectProvider)
+          }
+        }
+        
         // Track form start
         if (servicesRef.current.trackFormStart) {
           servicesRef.current.trackFormStart('booking-form').catch(() => {})

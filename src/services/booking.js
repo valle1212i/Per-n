@@ -116,7 +116,18 @@ export async function fetchBookingSettings() {
     
     const data = await response.json();
     
+    // Debug: Log the full response structure
+    console.log('Settings API response:', JSON.stringify(data, null, 2));
+    
     if (data.success && data.settings) {
+      // Debug: Log the settings structure
+      console.log('Settings object:', data.settings);
+      console.log('Industry terminology:', data.settings.industryTerminology);
+      if (data.settings.industryTerminology) {
+        console.log('Form labels:', data.settings.industryTerminology.formLabels);
+        console.log('Service label:', data.settings.industryTerminology.formLabels?.selectService);
+        console.log('Provider label:', data.settings.industryTerminology.formLabels?.selectProvider);
+      }
       return data.settings;
     }
     
