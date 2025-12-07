@@ -4,7 +4,7 @@ import './App.css'
 import ConsentBanner from './components/ConsentBanner'
 import { useGeoTracking } from './hooks/useGeoTracking'
 // Lazy load BookingForm to avoid circular dependencies
-const BookingForm = lazy(() => import('./components/BookingForm').then(module => ({ default: module.BookingForm })))
+const BookingForm = lazy(() => import('./components/BookingForm'))
 
 const heroSlides = [
   {
