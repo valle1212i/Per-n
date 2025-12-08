@@ -216,8 +216,11 @@ export async function fetchBookings(fromDate, toDate, providerId = null, status 
       params.append('status', status);
     }
     
-    const response = await fetch(`${getApiBase()}/bookings?${params}`, {
-      credentials: 'include'
+    // ✅ Use public endpoint for fetching bookings (no authentication required)
+    const response = await fetch(`${getApiBase()}/public/bookings?${params}`, {
+      headers: {
+        'X-Tenant': getTenant()
+      }
     });
     
     if (!response.ok) {
