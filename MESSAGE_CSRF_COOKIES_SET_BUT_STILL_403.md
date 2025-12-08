@@ -26,13 +26,18 @@ Thank you for updating the CSRF cookie settings! The cookies are now being set c
 ```
 🔐 Fetching CSRF token from: https://source-database-809785351172.europe-north1.run.app/api/csrf-token
 🔐 CSRF token response status: 200
-🔐 CSRF token response data: {csrfToken: 'YzOPzXuQ-31Fr-Vfa3Hk6f2cJEf6_pIvaxiE'}
-✅ CSRF token obtained: YzOPzXuQ-31Fr-Vfa3Hk...
-📝 Creating booking with CSRF token: YzOPzXuQ-31Fr-Vfa3Hk...
+🔐 CSRF token response data: {csrfToken: '32dzRxw1-nSo2zXCiQ8N0vBHZqDsJujYipXg'}
+✅ CSRF token obtained: 32dzRxw1-nSo2zXCiQ8N...
+📝 Creating booking with CSRF token: 32dzRxw1-nSo2zXCiQ8N...
+📝 Full CSRF token: 32dzRxw1-nSo2zXCiQ8N0vBHZqDsJujYipXg
 📝 Booking request: {
   url: 'https://source-database-809785351172.europe-north1.run.app/api/system/booking/public/bookings',
   method: 'POST',
-  headers: {...},
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': '32dzRxw1-nSo2zXCiQ8N0vBHZqDsJujYipXg',
+    'X-Tenant': 'peranrestaurante'
+  },
   hasCredentials: true,
   cookies: 'No cookies',  // document.cookie can't read HttpOnly cookies
   hasCSRFCookie: false
@@ -40,6 +45,11 @@ Thank you for updating the CSRF cookie settings! The cookies are now being set c
 POST /api/system/booking/public/bookings 403 (Forbidden)
 ❌ Booking failed: 403 {success: false, message: 'Ogiltig eller saknad CSRF-token'}
 ```
+
+**CSRF Token Details:**
+- Header token: `32dzRxw1-nSo2zXCiQ8N0vBHZqDsJujYipXg`
+- Cookie values visible in DevTools: `caX3KQWn-Btsv0nrn7mZEHxYDeNhJZ2bDugY` (from previous request)
+- **Token mismatch**: The header token doesn't match the cookie values
 
 **Questions:**
 
@@ -65,11 +75,32 @@ POST /api/system/booking/public/bookings 403 (Forbidden)
 
 **Request:**
 
-Please verify:
-1. That the CSRF cookie is actually being sent in the booking request headers (check server logs)
-2. Which cookie name/value the server expects for CSRF validation
-3. Whether the cookie value needs to match the `X-CSRF-Token` header value exactly
-4. If there are any other requirements for CSRF validation on the public booking endpoint
+Please check your server logs for the booking request and verify:
+
+1. **Are cookies being received in the request?**
+   - Check the `Cookie` header in the incoming booking request
+   - Are `csrfToken`, `XSRF-TOKEN`, or `_csrf` cookies present?
+   - What are their values?
+
+2. **Which cookie name does the server check?**
+   - `csrfToken`?
+   - `XSRF-TOKEN`?
+   - `_csrf`?
+   - All of them?
+
+3. **Does the cookie value need to match the header token exactly?**
+   - We're sending header: `X-CSRF-Token: 32dzRxw1-nSo2zXCiQ8N0vBHZqDsJujYipXg`
+   - Does the cookie value need to be exactly `32dzRxw1-nSo2zXCiQ8N0vBHZqDsJujYipXg`?
+   - Or can it be different?
+
+4. **Is there a timing issue?**
+   - Should we wait after fetching the CSRF token before making the booking request?
+   - Or fetch the token synchronously right before each booking?
+
+5. **Are cookies being blocked by CORS/SameSite?**
+   - Even though cookies show `SameSite: None` and `Secure: true` in DevTools
+   - Are they actually being sent in the request headers?
+   - Check server-side if cookies are received
 
 The cookies are set correctly, but the server is still rejecting the request. This suggests either:
 - The cookies aren't being sent (despite `credentials: 'include'`)
