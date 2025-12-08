@@ -442,6 +442,7 @@ function BookingForm() {
       }
       
       // ✅ Log booking data before sending
+      const partySizeValue = isRestaurant ? (Number(formData.guests) || 1) : undefined;
       console.log('📋 Booking data before sending:', {
         serviceId: serviceIdToUse ? serviceIdToUse.substring(0, 20) + '...' : 'MISSING',
         providerId: isRestaurant ? null : formData.providerId,
@@ -450,7 +451,8 @@ function BookingForm() {
         customerName: formData.name || 'MISSING',
         email: formData.email || 'MISSING',
         phone: formData.phone || 'empty',
-        partySize: isRestaurant ? formData.guests : undefined,
+        partySize: partySizeValue,
+        partySizeType: typeof partySizeValue,
         isRestaurant: isRestaurant
       });
       
@@ -462,7 +464,7 @@ function BookingForm() {
         customerName: formData.name, // ✅ Required: customer name
         email: formData.email,
         phone: formData.phone,
-        partySize: isRestaurant ? formData.guests : undefined, // ✅ Include partySize for restaurants
+        partySize: isRestaurant ? (Number(formData.guests) || 1) : undefined, // ✅ Include partySize for restaurants (ensure it's a number)
         status: 'confirmed'
       })
 
@@ -665,17 +667,18 @@ function BookingForm() {
             )}
           </div>
 
-          {bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requirePartySize === true && (
+          {/* ✅ Always show party size field for restaurants, or if requirePartySize is true */}
+          {(isRestaurant || (bookingSettings && bookingSettings.formFields && bookingSettings.formFields.requirePartySize === true)) && (
             <div className="booking-form-group">
               <label htmlFor="guests">{getPartySizeLabel()} *</label>
               <input
                 type="number"
                 id="guests"
                 name="guests"
-                value={Number(formData.guests) || 2}
+                value={Number(formData.guests) || 1}
                 onChange={handleChange}
                 min="1"
-                max="20"
+                max="50"
                 required
                 placeholder={getPartySizeLabel()}
               />

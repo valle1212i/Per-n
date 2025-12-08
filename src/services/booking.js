@@ -318,7 +318,7 @@ export async function createBooking(bookingData) {
       email: bookingData.email,
       phone: bookingData.phone || '',
       status: bookingData.status || 'confirmed',
-      guests: bookingData.partySize || bookingData.guests, // Include guests for restaurant bookings
+      partySize: bookingData.partySize ? Number(bookingData.partySize) : (bookingData.guests ? Number(bookingData.guests) : 1), // ✅ Include partySize as number (required for restaurants)
       notes: bookingData.notes, // Include notes
       specialRequests: bookingData.specialRequests // Include special requests
     };
@@ -333,7 +333,8 @@ export async function createBooking(bookingData) {
       email: requestBody.email || 'MISSING',
       phone: requestBody.phone || 'empty',
       status: requestBody.status,
-      guests: requestBody.guests || 'not provided',
+      partySize: requestBody.partySize || 'not provided',
+      partySizeType: typeof requestBody.partySize,
       notes: requestBody.notes || 'not provided',
       specialRequests: requestBody.specialRequests || 'not provided',
       allFieldsPresent: {
