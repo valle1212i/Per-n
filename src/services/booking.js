@@ -320,7 +320,10 @@ export async function createBooking(bookingData) {
         customerName: bookingData.customerName,
         email: bookingData.email,
         phone: bookingData.phone || '',
-        status: bookingData.status || 'confirmed'
+        status: bookingData.status || 'confirmed',
+        guests: bookingData.partySize || bookingData.guests, // Include guests for restaurant bookings
+        notes: bookingData.notes, // Include notes
+        specialRequests: bookingData.specialRequests // Include special requests
       })
     });
     

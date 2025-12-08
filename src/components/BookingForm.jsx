@@ -422,15 +422,34 @@ function BookingForm() {
       }
 
       // Create booking
-      // For restaurants, serviceId and providerId are optional (can be null or use defaults)
+      // ✅ CRITICAL: For restaurants, serviceId is still required (must be valid service ID)
+      // Even though we hide the service selector, we need to use a valid serviceId
+      // Use first available service if none selected, or formData.serviceId if selected
+      let serviceIdToUse = formData.serviceId
+      
+      if (isRestaurant && !serviceIdToUse) {
+        // For restaurants without selected service, use first available service
+        if (services && services.length > 0) {
+          serviceIdToUse = services[0]._id
+          console.log('🍽️ Restaurant booking: Auto-selecting first service:', services[0].name, serviceIdToUse)
+        } else {
+          throw new Error('Inga tjänster tillgängliga. Kontakta restaurangen för bokning.')
+        }
+      }
+      
+      if (!serviceIdToUse) {
+        throw new Error('Vänligen välj en tjänst')
+      }
+      
       const result = await servicesRef.current.createBooking({
-        serviceId: isRestaurant ? null : formData.serviceId,
-        providerId: isRestaurant ? null : formData.providerId,
+        serviceId: serviceIdToUse, // ✅ Always use valid serviceId
+        providerId: isRestaurant ? null : formData.providerId, // ✅ Optional for restaurants
         start: bookingDate,
         end: bookingEnd,
         customerName: formData.name,
         email: formData.email,
         phone: formData.phone,
+        partySize: isRestaurant ? formData.guests : undefined, // ✅ Include partySize for restaurants
         status: 'confirmed'
       })
 
