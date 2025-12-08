@@ -273,6 +273,10 @@ export async function createBooking(bookingData) {
       'X-Tenant': getTenant()
     };
     
+    // Check if CSRF cookie exists
+    const cookies = document.cookie;
+    const hasCSRFCookie = cookies.includes('csrf') || cookies.includes('_csrf');
+    
     console.log('📝 Booking request:', {
       url,
       method: 'POST',
@@ -281,7 +285,9 @@ export async function createBooking(bookingData) {
         'X-CSRF-Token': csrfToken ? csrfToken.substring(0, 20) + '...' : 'MISSING',
         'X-Tenant': headers['X-Tenant']
       },
-      hasCredentials: true
+      hasCredentials: true,
+      cookies: cookies ? cookies.substring(0, 100) + '...' : 'No cookies',
+      hasCSRFCookie: hasCSRFCookie
     });
     
     const response = await fetch(url, {
