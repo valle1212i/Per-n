@@ -266,7 +266,8 @@ export async function createBooking(bookingData) {
       ? bookingData.end.toISOString() 
       : bookingData.end;
     
-    const url = `${getApiBase()}/bookings`;
+    // Use public bookings endpoint (cross-origin safe)
+    const url = `${getApiBase()}/public/bookings`;
     const headers = {
       'Content-Type': 'application/json',
       'X-CSRF-Token': csrfToken,
