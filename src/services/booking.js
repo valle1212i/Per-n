@@ -253,13 +253,27 @@ export async function fetchBookings(fromDate, toDate, providerId = null, status 
  */
 export async function createBooking(bookingData) {
   try {
-    // ✅ CRITICAL: Fetch fresh CSRF token right before booking to ensure cookie matches header
-    // Don't use cached token - fetch fresh one to ensure cookie and header token match
-    const getCSRF = await loadCSRF();
-    const csrfToken = await getCSRF();
+    // ✅ CRITICAL: Fetch fresh CSRF token right before each booking request
+    // The CSRF cookie secret can change, so we must fetch a fresh token that matches the current cookie secret
+    // Do NOT cache the token - fetch it fresh every time
+    console.log('🔐 Fetching fresh CSRF token before booking request...');
     
-    console.log('📝 Creating booking with CSRF token:', csrfToken ? csrfToken.substring(0, 20) + '...' : 'MISSING');
-    console.log('📝 Full CSRF token:', csrfToken); // Debug: log full token to verify it matches cookie
+    const csrfResponse = await fetch(`${getBaseURL()}/api/csrf-token`, {
+      credentials: 'include'
+    });
+    
+    if (!csrfResponse.ok) {
+      throw new Error(`Failed to fetch CSRF token: ${csrfResponse.status}`);
+    }
+    
+    const csrfData = await csrfResponse.json();
+    
+    if (!csrfData.csrfToken) {
+      throw new Error('CSRF token not found in response');
+    }
+    
+    const csrfToken = csrfData.csrfToken;
+    console.log('✅ Fresh CSRF token obtained:', csrfToken.substring(0, 20) + '...');
     
     // Ensure dates are ISO strings
     const startDate = bookingData.start instanceof Date 
