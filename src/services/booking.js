@@ -308,23 +308,47 @@ export async function createBooking(bookingData) {
       hasCSRFCookie: hasCSRFCookie
     });
     
+    // Build request body with all required fields
+    const requestBody = {
+      serviceId: bookingData.serviceId,
+      providerId: bookingData.providerId,
+      start: startDate,
+      end: endDate,
+      customerName: bookingData.customerName,
+      email: bookingData.email,
+      phone: bookingData.phone || '',
+      status: bookingData.status || 'confirmed',
+      guests: bookingData.partySize || bookingData.guests, // Include guests for restaurant bookings
+      notes: bookingData.notes, // Include notes
+      specialRequests: bookingData.specialRequests // Include special requests
+    };
+    
+    // ✅ Detailed logging for debugging validation errors
+    console.log('📝 Booking request body:', {
+      serviceId: requestBody.serviceId ? requestBody.serviceId.substring(0, 20) + '...' : 'MISSING/NULL',
+      providerId: requestBody.providerId || 'null (optional for restaurants)',
+      start: requestBody.start,
+      end: requestBody.end,
+      customerName: requestBody.customerName || 'MISSING',
+      email: requestBody.email || 'MISSING',
+      phone: requestBody.phone || 'empty',
+      status: requestBody.status,
+      guests: requestBody.guests || 'not provided',
+      notes: requestBody.notes || 'not provided',
+      specialRequests: requestBody.specialRequests || 'not provided',
+      allFieldsPresent: {
+        serviceId: !!requestBody.serviceId,
+        start: !!requestBody.start,
+        end: !!requestBody.end,
+        customerName: !!requestBody.customerName
+      }
+    });
+    
     const response = await fetch(url, {
       method: 'POST',
       headers: headers,
       credentials: 'include',
-      body: JSON.stringify({
-        serviceId: bookingData.serviceId,
-        providerId: bookingData.providerId,
-        start: startDate,
-        end: endDate,
-        customerName: bookingData.customerName,
-        email: bookingData.email,
-        phone: bookingData.phone || '',
-        status: bookingData.status || 'confirmed',
-        guests: bookingData.partySize || bookingData.guests, // Include guests for restaurant bookings
-        notes: bookingData.notes, // Include notes
-        specialRequests: bookingData.specialRequests // Include special requests
-      })
+      body: JSON.stringify(requestBody)
     });
     
     console.log('📝 Booking response status:', response.status, response.statusText);

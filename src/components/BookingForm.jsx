@@ -441,12 +441,25 @@ function BookingForm() {
         throw new Error('Vänligen välj en tjänst')
       }
       
+      // ✅ Log booking data before sending
+      console.log('📋 Booking data before sending:', {
+        serviceId: serviceIdToUse ? serviceIdToUse.substring(0, 20) + '...' : 'MISSING',
+        providerId: isRestaurant ? null : formData.providerId,
+        start: bookingDate.toISOString(),
+        end: bookingEnd.toISOString(),
+        customerName: formData.name || 'MISSING',
+        email: formData.email || 'MISSING',
+        phone: formData.phone || 'empty',
+        partySize: isRestaurant ? formData.guests : undefined,
+        isRestaurant: isRestaurant
+      });
+      
       const result = await servicesRef.current.createBooking({
         serviceId: serviceIdToUse, // ✅ Always use valid serviceId
         providerId: isRestaurant ? null : formData.providerId, // ✅ Optional for restaurants
         start: bookingDate,
         end: bookingEnd,
-        customerName: formData.name,
+        customerName: formData.name, // ✅ Required: customer name
         email: formData.email,
         phone: formData.phone,
         partySize: isRestaurant ? formData.guests : undefined, // ✅ Include partySize for restaurants
