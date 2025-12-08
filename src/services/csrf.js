@@ -11,11 +11,15 @@ function getBaseURL() {
 
 /**
  * Get CSRF token from customer portal
+ * NOTE: Endpoint provided by Customer Portal team
+ * - GET /api/csrf-token
+ * - Must include credentials (cookies)
+ * Response: { csrfToken: "<token>" }
  * @returns {Promise<string>} CSRF token
  */
 export async function getCSRFToken() {
   try {
-    const response = await fetch(`${getBaseURL()}/api/auth/csrf`, {
+    const response = await fetch(`${getBaseURL()}/api/csrf-token`, {
       credentials: 'include'
     });
     
