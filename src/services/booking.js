@@ -256,6 +256,8 @@ export async function createBooking(bookingData) {
     const getCSRF = await loadCSRF();
     const csrfToken = await getCSRF();
     
+    console.log('📝 Creating booking with CSRF token:', csrfToken ? csrfToken.substring(0, 20) + '...' : 'MISSING');
+    
     // Ensure dates are ISO strings
     const startDate = bookingData.start instanceof Date 
       ? bookingData.start.toISOString() 
@@ -264,13 +266,27 @@ export async function createBooking(bookingData) {
       ? bookingData.end.toISOString() 
       : bookingData.end;
     
-    const response = await fetch(`${getApiBase()}/bookings`, {
+    const url = `${getApiBase()}/bookings`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+      'X-Tenant': getTenant()
+    };
+    
+    console.log('📝 Booking request:', {
+      url,
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrfToken,
-        'X-Tenant': getTenant()
+        'Content-Type': headers['Content-Type'],
+        'X-CSRF-Token': csrfToken ? csrfToken.substring(0, 20) + '...' : 'MISSING',
+        'X-Tenant': headers['X-Tenant']
       },
+      hasCredentials: true
+    });
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: headers,
       credentials: 'include',
       body: JSON.stringify({
         serviceId: bookingData.serviceId,
@@ -283,6 +299,13 @@ export async function createBooking(bookingData) {
         status: bookingData.status || 'confirmed'
       })
     });
+    
+    console.log('📝 Booking response status:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Booking failed:', response.status, errorText);
+    }
     
     const result = await response.json();
     

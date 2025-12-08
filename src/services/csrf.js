@@ -19,23 +19,33 @@ function getBaseURL() {
  */
 export async function getCSRFToken() {
   try {
-    const response = await fetch(`${getBaseURL()}/api/csrf-token`, {
+    const url = `${getBaseURL()}/api/csrf-token`;
+    console.log('🔐 Fetching CSRF token from:', url);
+    
+    const response = await fetch(url, {
       credentials: 'include'
     });
     
+    console.log('🔐 CSRF token response status:', response.status, response.statusText);
+    
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ CSRF token fetch failed:', response.status, errorText);
       throw new Error(`Failed to fetch CSRF token: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log('🔐 CSRF token response data:', data);
     
     if (!data.csrfToken) {
+      console.error('❌ CSRF token not found in response:', data);
       throw new Error('CSRF token not found in response');
     }
     
+    console.log('✅ CSRF token obtained:', data.csrfToken.substring(0, 20) + '...');
     return data.csrfToken;
   } catch (error) {
-    console.error('Error fetching CSRF token:', error);
+    console.error('❌ Error fetching CSRF token:', error);
     throw error;
   }
 }
