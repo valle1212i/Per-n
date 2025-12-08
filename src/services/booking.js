@@ -365,6 +365,15 @@ export async function createBooking(bookingData) {
     
     if (!response.ok) {
       console.error('❌ Booking failed:', response.status, result);
+      // Log full error details for 500 errors
+      if (response.status === 500) {
+        console.error('❌ Server Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorMessage: result.message,
+          fullResponse: result
+        });
+      }
     }
     
     if (response.status === 409) {
