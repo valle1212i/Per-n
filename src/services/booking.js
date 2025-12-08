@@ -302,12 +302,19 @@ export async function createBooking(bookingData) {
     
     console.log('📝 Booking response status:', response.status, response.statusText);
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Booking failed:', response.status, errorText);
+    // Read body once; try JSON parse, fallback to text
+    const rawBody = await response.text();
+    let result = {};
+    try {
+      result = rawBody ? JSON.parse(rawBody) : {};
+    } catch (parseErr) {
+      console.warn('⚠️ Failed to parse booking response JSON, using text', parseErr);
+      result = { message: rawBody };
     }
     
-    const result = await response.json();
+    if (!response.ok) {
+      console.error('❌ Booking failed:', response.status, result);
+    }
     
     if (response.status === 409) {
       // Booking conflict
