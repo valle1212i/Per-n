@@ -5,6 +5,8 @@ import ConsentBanner from './components/ConsentBanner'
 import { useGeoTracking } from './hooks/useGeoTracking'
 // Lazy load BookingForm to avoid circular dependencies
 const BookingForm = lazy(() => import('./components/BookingForm'))
+const BookingSuccess = lazy(() => import('./components/BookingSuccess'))
+const BookingCancel = lazy(() => import('./components/BookingCancel'))
 
 const heroSlides = [
   {
@@ -736,6 +738,24 @@ function App() {
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/reserve" element={<ReservePage />} />
           <Route path="/book" element={<BookPage />} />
+          <Route path="/booking-success" element={
+            <Suspense fallback={
+              <div className="book-page-wrapper">
+                <PageHero eyebrow="Bokning" title="Laddar..." copy="" />
+              </div>
+            }>
+              <BookingSuccess />
+            </Suspense>
+          } />
+          <Route path="/booking-cancel" element={
+            <Suspense fallback={
+              <div className="book-page-wrapper">
+                <PageHero eyebrow="Bokning" title="Laddar..." copy="" />
+              </div>
+            }>
+              <BookingCancel />
+            </Suspense>
+          } />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>

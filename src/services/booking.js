@@ -423,9 +423,13 @@ export async function createBooking(bookingData) {
     }
     
     if (result.success) {
+      // ✅ Return full response including payment information
       return {
         success: true,
-        booking: result.booking
+        booking: result.booking,
+        requiresPayment: result.requiresPayment || false,
+        checkoutUrl: result.checkoutUrl || null,
+        sessionId: result.sessionId || null
       };
     }
     

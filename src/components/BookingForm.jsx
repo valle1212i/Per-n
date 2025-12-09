@@ -509,6 +509,15 @@ function BookingForm() {
       })
 
       if (result.success) {
+        // ✅ CRITICAL: Check if payment is required
+        if (result.requiresPayment && result.checkoutUrl) {
+          console.log('💳 Payment required, redirecting to Stripe checkout:', result.checkoutUrl)
+          // Redirect customer to Stripe checkout
+          window.location.href = result.checkoutUrl
+          return // Don't reset form or show success message - user will be redirected
+        }
+        
+        // No payment required - booking confirmed immediately
         setSuccess(true)
         await loadAnalyticsServices()
         if (servicesRef.current.trackFormSubmit) {
@@ -529,6 +538,7 @@ function BookingForm() {
           specialRequests: '',
           bookingType: formData.bookingType
         })
+        setSelectedProducts([]) // Reset selected products
         
         // Refresh availability
         await checkAvailability()
