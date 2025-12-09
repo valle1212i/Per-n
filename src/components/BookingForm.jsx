@@ -114,6 +114,7 @@ function BookingForm() {
         servicesRef.current.fetchServices = bookingModule.fetchServices;
         servicesRef.current.fetchProviders = bookingModule.fetchProviders;
         servicesRef.current.fetchBookingSettings = bookingModule.fetchBookingSettings;
+        servicesRef.current.fetchBookingProducts = bookingModule.fetchBookingProducts; // ✅ Add fetchBookingProducts
         servicesRef.current.createBooking = bookingModule.createBooking;
         servicesRef.current.generateTimeSlots = bookingModule.generateTimeSlots;
         servicesRef.current.generateAvailableSlots = bookingModule.generateAvailableSlots;
