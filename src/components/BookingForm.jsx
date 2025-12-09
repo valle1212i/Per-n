@@ -169,19 +169,31 @@ function BookingForm() {
         }
         
         // ✅ Load products if product booking is enabled
-        if (
-          settingsData?.formFields?.allowProductBooking === true &&
-          settingsData?.paymentSettings?.enabled === true &&
-          servicesRef.current.fetchBookingProducts
-        ) {
+        const allowProductBooking = settingsData?.formFields?.allowProductBooking === true
+        const paymentEnabled = settingsData?.paymentSettings?.enabled === true
+        
+        console.log('🔍 Product booking check:', {
+          allowProductBooking,
+          paymentEnabled,
+          hasFetchFunction: !!servicesRef.current.fetchBookingProducts,
+          formFields: settingsData?.formFields,
+          paymentSettings: settingsData?.paymentSettings
+        })
+        
+        if (allowProductBooking && paymentEnabled && servicesRef.current.fetchBookingProducts) {
           try {
+            console.log('📦 Fetching products...')
             const productsData = await servicesRef.current.fetchBookingProducts()
+            console.log('📦 Products response:', productsData)
             setProducts(Array.isArray(productsData) ? productsData : [])
-            console.log('✅ Products loaded:', productsData.length)
+            console.log('✅ Products loaded:', Array.isArray(productsData) ? productsData.length : 0)
           } catch (error) {
-            console.error('Error loading products:', error)
+            console.error('❌ Error loading products:', error)
             setProducts([])
           }
+        } else {
+          console.log('⚠️ Product booking not enabled or fetch function not available')
+          setProducts([])
         }
         
         // Track form start
@@ -773,6 +785,79 @@ function BookingForm() {
                 rows="3"
                 placeholder="Har du några särskilda önskemål?"
               />
+            </div>
+          )}
+
+          {/* ✅ Product Selection Section */}
+          {isProductBookingEnabled && products.length > 0 && (
+            <div className="booking-form-group full-width" style={{ marginTop: '1.5rem', padding: '1.5rem', border: '1px solid rgba(244, 239, 232, 0.2)', borderRadius: '8px' }}>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600' }}>Välj produkter/paket (valfritt)</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {products.map(product => (
+                  <label
+                    key={product.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      padding: '1rem',
+                      border: selectedProducts.includes(product.id) ? '1px solid #c5a26e' : '1px solid rgba(244, 239, 232, 0.2)',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      backgroundColor: selectedProducts.includes(product.id) ? 'rgba(197, 162, 110, 0.1)' : 'transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!selectedProducts.includes(product.id)) {
+                        e.currentTarget.style.backgroundColor = 'rgba(244, 239, 232, 0.05)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!selectedProducts.includes(product.id)) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      value={product.id}
+                      checked={selectedProducts.includes(product.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedProducts([...selectedProducts, product.id])
+                        } else {
+                          setSelectedProducts(selectedProducts.filter(id => id !== product.id))
+                        }
+                      }}
+                      style={{ marginRight: '1rem', marginTop: '2px', cursor: 'pointer' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{product.name}</div>
+                      {product.description && (
+                        <div style={{ color: 'rgba(244, 239, 232, 0.7)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                          {product.description}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {product.prices && Array.isArray(product.prices) && product.prices.map(price => (
+                          <span
+                            key={price.id}
+                            style={{
+                              backgroundColor: '#c5a26e',
+                              color: '#050505',
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: '12px',
+                              fontSize: '0.875rem',
+                              fontWeight: '600'
+                            }}
+                          >
+                            {(price.amount / 100).toFixed(2)} {price.currency}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
             </div>
           )}
         </div>
