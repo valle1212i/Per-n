@@ -23,6 +23,8 @@ function BookingForm() {
   const [bookingSettings, setBookingSettings] = useState(null)
   const [availableSlots, setAvailableSlots] = useState([])
   const [bookedDates, setBookedDates] = useState([])
+  const [products, setProducts] = useState([]) // Products for booking
+  const [selectedProducts, setSelectedProducts] = useState([]) // Selected product IDs
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -88,6 +90,7 @@ function BookingForm() {
     fetchServices: null,
     fetchProviders: null,
     fetchBookingSettings: null,
+    fetchBookingProducts: null,
     createBooking: null,
     generateTimeSlots: null,
     generateAvailableSlots: null,
@@ -162,6 +165,22 @@ function BookingForm() {
             console.log('Form labels:', settingsData.industryTerminology.formLabels)
             console.log('Service label:', settingsData.industryTerminology.formLabels?.selectService)
             console.log('Provider label:', settingsData.industryTerminology.formLabels?.selectProvider)
+          }
+        }
+        
+        // ✅ Load products if product booking is enabled
+        if (
+          settingsData?.formFields?.allowProductBooking === true &&
+          settingsData?.paymentSettings?.enabled === true &&
+          servicesRef.current.fetchBookingProducts
+        ) {
+          try {
+            const productsData = await servicesRef.current.fetchBookingProducts()
+            setProducts(Array.isArray(productsData) ? productsData : [])
+            console.log('✅ Products loaded:', productsData.length)
+          } catch (error) {
+            console.error('Error loading products:', error)
+            setProducts([])
           }
         }
         
@@ -465,6 +484,7 @@ function BookingForm() {
         email: formData.email,
         phone: formData.phone,
         partySize: isRestaurant ? (Number(formData.guests) || 1) : undefined, // ✅ Include partySize for restaurants (ensure it's a number)
+        productIds: selectedProducts.length > 0 ? selectedProducts : undefined, // ✅ Include selected product IDs
         status: 'confirmed'
       })
 

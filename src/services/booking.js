@@ -152,6 +152,36 @@ export async function fetchBookingSettings() {
 }
 
 /**
+ * Fetch available products for booking
+ * ✅ PUBLIC ENDPOINT: No authentication required
+ * @returns {Promise<Array>} Array of product objects
+ */
+export async function fetchBookingProducts() {
+  try {
+    const response = await fetch(`${getApiBase()}/public/products`, {
+      headers: {
+        'X-Tenant': getTenant() // ✅ Required: Include tenant header
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch products: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success && Array.isArray(data.products)) {
+      return data.products;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error fetching booking products:', error);
+    return [];
+  }
+}
+
+/**
  * Fetch provider-specific availability and available slots
  * ✅ PUBLIC ENDPOINT: Use this to get exact available slots for each provider
  * @param {String} providerId - Provider ID
@@ -323,7 +353,8 @@ export async function createBooking(bookingData) {
       status: bookingData.status || 'confirmed',
       partySize: bookingData.partySize ? Number(bookingData.partySize) : (bookingData.guests ? Number(bookingData.guests) : 1), // ✅ Include partySize as number (required for restaurants)
       notes: bookingData.notes, // Include notes
-      specialRequests: bookingData.specialRequests // Include special requests
+      specialRequests: bookingData.specialRequests, // Include special requests
+      productIds: bookingData.productIds && Array.isArray(bookingData.productIds) && bookingData.productIds.length > 0 ? bookingData.productIds : undefined // ✅ Include selected product IDs
     };
     
     // ✅ Detailed logging for debugging validation errors
@@ -338,6 +369,8 @@ export async function createBooking(bookingData) {
       status: requestBody.status,
       partySize: requestBody.partySize || 'not provided',
       partySizeType: typeof requestBody.partySize,
+      productIds: requestBody.productIds || 'not provided',
+      productIdsCount: requestBody.productIds ? requestBody.productIds.length : 0,
       notes: requestBody.notes || 'not provided',
       specialRequests: requestBody.specialRequests || 'not provided',
       allFieldsPresent: {
