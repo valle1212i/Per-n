@@ -38,9 +38,11 @@ function BookingForm() {
   const terms = industryTerminology?.terminology || {}
   
   // Check if product booking is enabled
-  const isProductBookingEnabled = 
+  // ✅ Always define this variable, even if bookingSettings is null
+  const isProductBookingEnabled = Boolean(
     bookingSettings?.formFields?.allowProductBooking === true &&
     bookingSettings?.paymentSettings?.enabled === true
+  )
   
   // ✅ CORRECT: Determine if this is a restaurant booking
   // Check industryTerminology.businessType (recommended) or formLabels.partySize
