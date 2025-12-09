@@ -37,6 +37,11 @@ function BookingForm() {
   const formLabels = industryTerminology?.formLabels || {}
   const terms = industryTerminology?.terminology || {}
   
+  // Check if product booking is enabled
+  const isProductBookingEnabled = 
+    bookingSettings?.formFields?.allowProductBooking === true &&
+    bookingSettings?.paymentSettings?.enabled === true
+  
   // ✅ CORRECT: Determine if this is a restaurant booking
   // Check industryTerminology.businessType (recommended) or formLabels.partySize
   // The API returns businessType in industryTerminology, not in settings
