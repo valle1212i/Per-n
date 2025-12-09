@@ -555,7 +555,23 @@ function BookingForm() {
     } catch (error) {
       console.error('Error submitting booking:', error)
       // Ensure error is always a string
-      const errorMessage = error instanceof Error ? error.message : String(error || 'Ett fel uppstod vid skapande av bokning')
+      let errorMessage = error instanceof Error ? error.message : String(error || 'Ett fel uppstod vid skapande av bokning')
+      
+      // ✅ Enhanced error messages based on error type
+      if (errorMessage.includes('betalningssession')) {
+        // Payment session error - provide more helpful message
+        errorMessage = 'Ett fel uppstod vid skapande av betalningssession. Kontrollera att Stripe är korrekt konfigurerat och att produkterna finns i Stripe.'
+      } else if (errorMessage.includes('Betalningssystem')) {
+        // Payment system not configured
+        errorMessage = 'Betalningssystemet är inte korrekt konfigurerat. Kontakta support.'
+      } else if (errorMessage.includes('produkter hittades inte')) {
+        // Products not found
+        errorMessage = 'En eller flera produkter hittades inte. Kontrollera att produkterna finns i Stripe och har aktiva priser.'
+      } else if (errorMessage.includes('Inga giltiga produkter')) {
+        // No valid products
+        errorMessage = 'Inga giltiga produkter hittades för betalning. Kontrollera att produkterna har aktiva priser.'
+      }
+      
       setError(errorMessage || 'Ett fel uppstod vid skapande av bokning')
     } finally {
       setSubmitting(false)

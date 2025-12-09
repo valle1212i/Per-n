@@ -408,7 +408,11 @@ export async function createBooking(bookingData) {
           status: response.status,
           statusText: response.statusText,
           errorMessage: result.message,
-          fullResponse: result
+          fullResponse: result,
+          // ✅ Enhanced error logging - check for Stripe-specific errors
+          stripeError: result.stripeError || null,
+          stripeErrorType: result.stripeErrorType || null,
+          stripeErrorCode: result.stripeErrorCode || null
         });
       }
     }
