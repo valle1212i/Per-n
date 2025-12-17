@@ -102,7 +102,7 @@ function BookingForm() {
     generateTimeSlots: null,
     generateAvailableSlots: null,
     fetchBookings: null,
-    isDayFullyBooked: null,
+    fetchCalendarAvailability: null,
     trackFormStart: null,
     trackFormSubmit: null
   })
@@ -120,7 +120,7 @@ function BookingForm() {
         servicesRef.current.generateTimeSlots = bookingModule.generateTimeSlots;
         servicesRef.current.generateAvailableSlots = bookingModule.generateAvailableSlots;
         servicesRef.current.fetchBookings = bookingModule.fetchBookings;
-        servicesRef.current.isDayFullyBooked = bookingModule.isDayFullyBooked; // ✅ Add isDayFullyBooked
+        servicesRef.current.fetchCalendarAvailability = bookingModule.fetchCalendarAvailability; // ✅ Add fetchCalendarAvailability
       } catch (error) {
         console.error('Failed to load booking services:', error);
         throw error;
@@ -269,27 +269,16 @@ function BookingForm() {
   }, [formData.serviceId, formData.date, formData.providerId, bookingSettings, services, isRestaurant])
 
   // Load booked dates for calendar display
-  // For restaurants, don't require providerId
+  // ✅ Uses new API endpoint that handles all availability calculations on backend
   useEffect(() => {
-    if (isRestaurant) {
-      // For restaurants, load all booked dates (no provider filter)
-      loadBookedDates()
-    } else {
-      // For other business types, only load if providerId is selected
-      if (formData.providerId) {
-        loadBookedDates()
-      }
-    }
-  }, [formData.providerId, isRestaurant, providers, bookingSettings])
+    loadBookedDates()
+  }, [])
 
   const loadBookedDates = async () => {
-    // For restaurants, don't require providerId
-    if (!isRestaurant && !formData.providerId) return
-    
     try {
       await loadBookingServices()
-      if (!servicesRef.current.fetchBookings || !bookingSettings) {
-        console.warn('Booking services or settings not loaded yet')
+      if (!servicesRef.current.fetchCalendarAvailability) {
+        console.warn('Calendar availability service not loaded yet')
         return
       }
       
@@ -297,75 +286,27 @@ function BookingForm() {
       const futureDate = new Date()
       futureDate.setDate(today.getDate() + 60) // Next 60 days
       
-      // For restaurants, don't filter by providerId
-      const providerId = isRestaurant ? null : formData.providerId
-      const bookings = await servicesRef.current.fetchBookings(today, futureDate, providerId)
+      // ✅ RECOMMENDED: Use new API endpoint for calendar availability
+      // This uses correct slot-by-slot calculation on the backend
+      const availability = await servicesRef.current.fetchCalendarAvailability(today, futureDate)
       
-      // ✅ CRITICAL: Filter out bookings without valid providerId for non-restaurant bookings
-      // Only bookings with valid providerId should count toward capacity
-      const validBookings = isRestaurant 
-        ? bookings // For restaurants, keep all bookings (providerId can be null)
-        : bookings.filter(booking => {
-            // Filter out canceled bookings (already done in fetchBookings, but double-check)
-            if (booking.status === 'canceled') return false
-            
-            // ✅ Only count bookings with valid providerId
-            const providerId = booking.providerId
-            return providerId != null && 
-                   providerId !== '' && 
-                   providerId !== 'deleted-provider' &&
-                   String(providerId).trim() !== ''
-          })
-      
-      // ✅ CRITICAL: Use slot-individual checking instead of just marking dates with bookings
-      // A day is fully booked ONLY if EVERY slot has 0 available capacity
-      // ❌ WRONG: Summing totalBookedSlots and comparing to totalCapacity
-      // ✅ CORRECT: Check each slot individually for available capacity
-      const booked = new Set()
-      
-      if (!isRestaurant && Array.isArray(providers) && providers.length > 0 && servicesRef.current.isDayFullyBooked) {
-        // For provider-based bookings, check each date with bookings individually
-        // Group bookings by date
-        const bookingsByDate = new Map()
-        validBookings.forEach(booking => {
-          const date = new Date(booking.start)
-          const dateStr = date.toISOString().split('T')[0]
-          if (!bookingsByDate.has(dateStr)) {
-            bookingsByDate.set(dateStr, [])
+      if (availability) {
+        // Extract dates that are fully booked
+        const booked = new Set()
+        Object.entries(availability).forEach(([date, status]) => {
+          if (status.isFullyBooked) {
+            booked.add(date)
           }
-          bookingsByDate.get(dateStr).push(booking)
         })
-        
-        // ✅ Check each date individually - day is fully booked ONLY if ALL slots have 0 available capacity
-        for (const [dateStr, dayBookings] of bookingsByDate.entries()) {
-          const checkDate = new Date(dateStr + 'T00:00:00')
-          
-          // Use slot-individual checking function
-          const fullyBooked = servicesRef.current.isDayFullyBooked(
-            checkDate,
-            dayBookings,
-            providers,
-            bookingSettings,
-            30 // default slot duration
-          )
-          
-          if (fullyBooked) {
-            booked.add(dateStr)
-          }
-        }
+        setBookedDates(Array.from(booked))
       } else {
-        // For restaurants OR if isDayFullyBooked function not available, use simpler logic
-        // Restaurant bookings don't use provider-based capacity, so mark dates with any bookings
-        validBookings.forEach(booking => {
-          const date = new Date(booking.start)
-          const dateStr = date.toISOString().split('T')[0]
-          booked.add(dateStr)
-        })
+        // Fallback: if API fails, don't mark any dates as booked
+        setBookedDates([])
       }
-      
-      setBookedDates(Array.from(booked))
     } catch (error) {
       console.error('Error loading booked dates:', error)
+      // On error, don't mark any dates as booked (safer than blocking all dates)
+      setBookedDates([])
     }
   }
 

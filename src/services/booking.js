@@ -222,6 +222,68 @@ export async function fetchProviderAvailability(providerId, date, slotDuration =
 }
 
 /**
+ * Fetch calendar availability status for a date range
+ * ✅ PUBLIC ENDPOINT: Returns correct availability status per day (slot-by-slot calculation)
+ * ✅ RECOMMENDED: Use this instead of calculating availability in frontend
+ * @param {Date|String} fromDate - Start date (Date object or YYYY-MM-DD string)
+ * @param {Date|String} toDate - End date (Date object or YYYY-MM-DD string)
+ * @returns {Promise<Object|null>} Availability map with date as key and status as value
+ * 
+ * Response format:
+ * {
+ *   "2025-12-01": {
+ *     "date": "2025-12-01",
+ *     "isFullyBooked": false,
+ *     "freePercentage": 75.5,
+ *     "hasOpeningHours": true,
+ *     "totalProviders": 2
+ *   },
+ *   ...
+ * }
+ */
+export async function fetchCalendarAvailability(fromDate, toDate) {
+  try {
+    // Convert dates to YYYY-MM-DD format
+    const formatDate = (date) => {
+      if (typeof date === 'string') {
+        // Already in YYYY-MM-DD format
+        return date;
+      }
+      const d = date instanceof Date ? date : new Date(date);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    
+    const fromStr = formatDate(fromDate);
+    const toStr = formatDate(toDate);
+    
+    const response = await fetch(
+      `${getApiBase()}/public/availability/calendar?from=${fromStr}&to=${toStr}`,
+      {
+        headers: {
+          'X-Tenant': getTenant() // ✅ Required: Include tenant header
+        },
+        credentials: 'include' // ✅ CORS support
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch calendar availability: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success && data.availability) {
+      return data.availability;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching calendar availability:', error);
+    return null;
+  }
+}
+
+/**
  * Fetch bookings for a date range
  * ✅ CRITICAL: Exclude canceled bookings from availability calculations
  * Note: This endpoint requires authentication (credentials: 'include')
@@ -589,12 +651,18 @@ function filterBookingsByProviderId(bookings, requireProviderId = true) {
  * ✅ CRITICAL: A day is fully booked ONLY if EVERY slot has 0 available capacity
  * ❌ WRONG: Summing totalBookedSlots and comparing to totalCapacity
  * ✅ CORRECT: Check each slot individually for available capacity
+ * 
+ * ⚠️ NOTE: This function is kept for reference/fallback, but it's RECOMMENDED to use
+ * fetchCalendarAvailability() instead, which handles all calculations on the backend
+ * and ensures consistency with the customer portal.
+ * 
  * @param {Date} date - Date to check
  * @param {Array} bookings - Array of bookings for the date (already filtered for canceled and valid providerId)
  * @param {Array} providers - Array of all providers
  * @param {Object} settings - Booking settings with opening hours
  * @param {number} slotDuration - Duration of each slot in minutes (default: 30)
  * @returns {boolean} True if the day is fully booked (all slots have 0 available capacity)
+ * @deprecated Use fetchCalendarAvailability() instead for better performance and consistency
  */
 export function isDayFullyBooked(date, bookings, providers, settings, slotDuration = 30) {
   // If no providers, day cannot be fully booked
