@@ -585,6 +585,126 @@ function filterBookingsByProviderId(bookings, requireProviderId = true) {
 }
 
 /**
+ * Check if a date is fully booked by checking each slot individually
+ * ✅ CRITICAL: A day is fully booked ONLY if EVERY slot has 0 available capacity
+ * ❌ WRONG: Summing totalBookedSlots and comparing to totalCapacity
+ * ✅ CORRECT: Check each slot individually for available capacity
+ * @param {Date} date - Date to check
+ * @param {Array} bookings - Array of bookings for the date (already filtered for canceled and valid providerId)
+ * @param {Array} providers - Array of all providers
+ * @param {Object} settings - Booking settings with opening hours
+ * @param {number} slotDuration - Duration of each slot in minutes (default: 30)
+ * @returns {boolean} True if the day is fully booked (all slots have 0 available capacity)
+ */
+export function isDayFullyBooked(date, bookings, providers, settings, slotDuration = 30) {
+  // If no providers, day cannot be fully booked
+  if (!Array.isArray(providers) || providers.length === 0) {
+    return false;
+  }
+  
+  const totalProviders = providers.length;
+  
+  // Get opening hours for this day
+  const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][date.getDay()];
+  const dayOpeningHours = settings?.openingHours?.[dayOfWeek];
+  
+  // Check if business is closed
+  if (dayOpeningHours?.isOpen === false) {
+    return true; // Closed days are considered "fully booked" (not available)
+  }
+  
+  // Get start and end hours
+  let startHour = null;
+  let endHour = null;
+  let actualEndHour = null;
+  let actualEndMinutes = null;
+  
+  if (dayOpeningHours && dayOpeningHours.isOpen !== false && dayOpeningHours.start && dayOpeningHours.end) {
+    const [startHours, startMinutes] = dayOpeningHours.start.split(':').map(Number);
+    const [endHours, endMinutes] = dayOpeningHours.end.split(':').map(Number);
+    startHour = startHours;
+    endHour = endMinutes > 0 ? endHours + 1 : endHours + 1;
+    actualEndHour = endHours;
+    actualEndMinutes = endMinutes;
+  } else if (settings?.calendarBehavior?.startTime && settings?.calendarBehavior?.endTime) {
+    const [startHours] = settings.calendarBehavior.startTime.split(':').map(Number);
+    const [endHours, endMinutes] = settings.calendarBehavior.endTime.split(':').map(Number);
+    startHour = startHours;
+    endHour = endMinutes > 0 ? endHours + 1 : endHours + 1;
+    actualEndHour = endHours;
+    actualEndMinutes = endMinutes;
+  }
+  
+  // If no opening hours, day is not fully booked (can't determine)
+  if (startHour === null || endHour === null) {
+    return false;
+  }
+  
+  const slotInterval = settings?.calendarBehavior?.timeSlotInterval || 30;
+  let slotsWithAvailableCapacity = 0;
+  let totalSlotsChecked = 0;
+  
+  // ✅ CORRECT: Check each slot individually
+  for (let hour = startHour; hour < endHour; hour++) {
+    for (let minute = 0; minute < 60; minute += slotInterval) {
+      // Skip slots that start at or after closing time
+      if (actualEndHour !== null && actualEndMinutes !== null) {
+        const slotStartMinutes = hour * 60 + minute;
+        const closingMinutes = actualEndHour * 60 + actualEndMinutes;
+        if (slotStartMinutes >= closingMinutes) {
+          continue;
+        }
+      }
+      
+      totalSlotsChecked++;
+      
+      const slotStart = new Date(date);
+      slotStart.setHours(hour, minute, 0, 0);
+      
+      const slotEnd = new Date(slotStart);
+      slotEnd.setMinutes(slotEnd.getMinutes() + slotDuration);
+      
+      // Check that slot doesn't extend beyond closing time
+      if (actualEndHour !== null && actualEndMinutes !== null) {
+        const slotEndMinutes = slotEnd.getHours() * 60 + slotEnd.getMinutes();
+        const closingMinutes = actualEndHour * 60 + actualEndMinutes;
+        if (slotEndMinutes > closingMinutes) {
+          continue;
+        }
+      }
+      
+      // ✅ CRITICAL: Count unique providers booked in this specific slot
+      const bookedProviders = new Set();
+      bookings.forEach(booking => {
+        const bookingStart = new Date(booking.start);
+        const bookingEnd = new Date(booking.end);
+        
+        // Check if booking overlaps with this slot
+        if (slotStart < bookingEnd && slotEnd > bookingStart) {
+          // Only count bookings with valid providerId
+          if (isValidProviderId(booking.providerId)) {
+            bookedProviders.add(booking.providerId);
+          }
+        }
+      });
+      
+      // Calculate available capacity for this specific slot
+      const bookedCapacity = bookedProviders.size;
+      const availableCapacity = Math.max(0, totalProviders - bookedCapacity);
+      
+      // If this slot has available capacity, day is NOT fully booked
+      if (availableCapacity > 0) {
+        slotsWithAvailableCapacity++;
+      }
+    }
+  }
+  
+  // ✅ CORRECT: Day is fully booked ONLY if NO slots have available capacity
+  // (slotsWithAvailableCapacity === 0 and we checked at least one slot)
+  return totalSlotsChecked > 0 && slotsWithAvailableCapacity === 0;
+}
+
+/**
  * Check if a time slot is available
  * @param {Date} start - Start time
  * @param {Date} end - End time
