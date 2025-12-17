@@ -299,14 +299,28 @@ function BookingForm() {
       const providerId = isRestaurant ? null : formData.providerId
       const bookings = await servicesRef.current.fetchBookings(today, futureDate, providerId)
       
-      // Extract unique dates that have bookings
+      // ✅ CRITICAL: Filter out bookings without valid providerId for non-restaurant bookings
+      // Only bookings with valid providerId should mark days as fully booked
+      const validBookings = isRestaurant 
+        ? bookings // For restaurants, keep all bookings (providerId can be null)
+        : bookings.filter(booking => {
+            // Filter out canceled bookings (already done in fetchBookings, but double-check)
+            if (booking.status === 'canceled') return false
+            
+            // ✅ Only count bookings with valid providerId
+            const providerId = booking.providerId
+            return providerId != null && 
+                   providerId !== '' && 
+                   providerId !== 'deleted-provider' &&
+                   String(providerId).trim() !== ''
+          })
+      
+      // Extract unique dates that have bookings (only valid ones)
       const booked = new Set()
-      bookings.forEach(booking => {
-        if (booking.status !== 'canceled') {
-          const date = new Date(booking.start)
-          const dateStr = date.toISOString().split('T')[0]
-          booked.add(dateStr)
-        }
+      validBookings.forEach(booking => {
+        const date = new Date(booking.start)
+        const dateStr = date.toISOString().split('T')[0]
+        booked.add(dateStr)
       })
       
       setBookedDates(Array.from(booked))
@@ -362,11 +376,18 @@ function BookingForm() {
       
       const bookings = await servicesRef.current.fetchBookings(dayStart, dayEnd, providerId)
       
+      // ✅ CRITICAL: Determine if providerId is required based on business type
+      // For restaurants (providerId is null), allow bookings without providerId
+      // For provider-based bookings, only count bookings with valid providerId
+      const requireProviderId = !isRestaurant && providerId != null && providerId !== ''
+      
       // Debug: Log what we're passing to generateTimeSlots
       console.log('🔍 checkAvailability - calling generateTimeSlots with:', {
         date: selectedDate.toISOString(),
         durationMin,
         bookingsCount: bookings.length,
+        requireProviderId,
+        isRestaurant,
         bookingSettings: bookingSettings ? {
           hasOpeningHours: !!bookingSettings.openingHours,
           openingHoursKeys: bookingSettings.openingHours ? Object.keys(bookingSettings.openingHours) : null,
@@ -376,7 +397,8 @@ function BookingForm() {
       });
       
       // ✅ CRITICAL: Generate available time slots using opening hours from settings
-      const slots = servicesRef.current.generateTimeSlots(selectedDate, durationMin, bookings, bookingSettings)
+      // Pass requireProviderId flag so only bookings with valid providerId block slots
+      const slots = servicesRef.current.generateTimeSlots(selectedDate, durationMin, bookings, bookingSettings, requireProviderId)
       
       console.log('✅ Generated slots:', slots.length, 'available time slots');
 

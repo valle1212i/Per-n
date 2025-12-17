@@ -549,6 +549,42 @@ export async function cancelBooking(bookingId) {
 }
 
 /**
+ * Check if a providerId is valid (not null, undefined, or "deleted-provider")
+ * ✅ CRITICAL: Only bookings with valid providerId should count as booked staff
+ * @param {string|null|undefined} providerId - Provider ID to validate
+ * @returns {boolean} True if providerId is valid
+ */
+function isValidProviderId(providerId) {
+  return providerId != null && 
+         providerId !== '' && 
+         providerId !== 'deleted-provider' &&
+         String(providerId).trim() !== '';
+}
+
+/**
+ * Filter bookings to only include those with valid providerId
+ * ✅ CRITICAL: Bookings without providerId should not reduce capacity
+ * @param {Array} bookings - Array of booking objects
+ * @param {boolean} requireProviderId - If true, filter out bookings without valid providerId
+ * @returns {Array} Filtered array of bookings
+ */
+function filterBookingsByProviderId(bookings, requireProviderId = true) {
+  if (!requireProviderId) {
+    // For restaurant bookings, don't filter by providerId (null is allowed)
+    return bookings;
+  }
+  
+  // For provider-based bookings, only count bookings with valid providerId
+  return bookings.filter(booking => {
+    // Already filtered canceled bookings in fetchBookings, but double-check
+    if (booking.status === 'canceled') return false;
+    
+    // Only include bookings with valid providerId
+    return isValidProviderId(booking.providerId);
+  });
+}
+
+/**
  * Check if a time slot is available
  * @param {Date} start - Start time
  * @param {Date} end - End time
@@ -559,10 +595,13 @@ export async function checkAvailability(start, end, providerId) {
   try {
     const bookings = await fetchBookings(start, end, providerId);
     
+    // ✅ CRITICAL: Filter out bookings without valid providerId
+    // If providerId is provided, we're checking provider-specific availability
+    const requireProviderId = providerId != null && providerId !== '';
+    const validBookings = filterBookingsByProviderId(bookings, requireProviderId);
+    
     // Check for conflicts
-    const hasConflict = bookings.some(booking => {
-      if (booking.status === 'canceled') return false;
-      
+    const hasConflict = validBookings.some(booking => {
       const bookingStart = new Date(booking.start);
       const bookingEnd = new Date(booking.end);
       
@@ -580,13 +619,15 @@ export async function checkAvailability(start, end, providerId) {
 /**
  * Generate time slots based on opening hours and existing bookings
  * ✅ CRITICAL: Use settings parameter for opening hours (no hardcoded values)
+ * ✅ CRITICAL: Only bookings with valid providerId block slots
  * @param {Date} date - Date to generate slots for
  * @param {number} durationMin - Duration in minutes
  * @param {Array} existingBookings - Array of existing bookings (already filtered for canceled)
  * @param {Object} settings - Booking settings object (from fetchBookingSettings)
+ * @param {boolean} requireProviderId - If true, filter out bookings without valid providerId (default: true)
  * @returns {Array} Array of available time slots
  */
-export function generateTimeSlots(date, durationMin, existingBookings, settings = null) {
+export function generateTimeSlots(date, durationMin, existingBookings, settings = null, requireProviderId = true) {
   const slots = [];
   
   // Debug: Log settings structure
@@ -645,6 +686,11 @@ export function generateTimeSlots(date, durationMin, existingBookings, settings 
   
   const slotInterval = settings?.calendarBehavior?.timeSlotInterval || 30;
   
+  // ✅ CRITICAL: Filter bookings to only include those with valid providerId BEFORE the loop
+  // Bookings without providerId should not block slots
+  // This is more efficient than filtering inside the loop
+  const validBookings = filterBookingsByProviderId(existingBookings || [], requireProviderId);
+  
   // ✅ CRITICAL: Get actual closing time to filter slots
   let actualEndHour = null;
   let actualEndMinutes = null;
@@ -686,8 +732,8 @@ export function generateTimeSlots(date, durationMin, existingBookings, settings 
         }
       }
       
-      // ✅ CRITICAL: Check for conflicts with existing bookings
-      const hasConflict = existingBookings.some(booking => {
+      // ✅ CRITICAL: Check for conflicts with existing bookings (only valid ones)
+      const hasConflict = validBookings.some(booking => {
         const bookingStart = new Date(booking.start);
         const bookingEnd = new Date(booking.end);
         return (slotStart < bookingEnd && slotEnd > bookingStart);
@@ -714,7 +760,7 @@ export function generateTimeSlots(date, durationMin, existingBookings, settings 
  * Generate available time slots for a date (uses settings)
  * @param {Date} date - Date to generate slots for
  * @param {number} durationMin - Duration in minutes
- * @param {string} providerId - Provider ID
+ * @param {string} providerId - Provider ID (null for restaurant bookings)
  * @param {Object} options - Options for slot generation (deprecated - use settings instead)
  * @param {Object} settings - Booking settings object (from fetchBookingSettings)
  * @returns {Promise<Array>} Array of available time slots
@@ -729,9 +775,14 @@ export async function generateAvailableSlots(date, durationMin, providerId, opti
     
     const bookings = await fetchBookings(dayStart, dayEnd, providerId);
     
+    // ✅ CRITICAL: Determine if providerId is required based on whether it was provided
+    // If providerId is null/undefined (restaurant), allow bookings without providerId
+    // If providerId is provided (provider-based), only count bookings with valid providerId
+    const requireProviderId = providerId != null && providerId !== '';
+    
     // Use generateTimeSlots with settings if available, otherwise fallback to old behavior
     if (settings) {
-      return generateTimeSlots(date, durationMin, bookings, settings);
+      return generateTimeSlots(date, durationMin, bookings, settings, requireProviderId);
     }
     
     // Fallback to old behavior if no settings (for backward compatibility)
@@ -740,6 +791,9 @@ export async function generateAvailableSlots(date, durationMin, providerId, opti
       endHour = 17,
       intervalMin = 30
     } = options;
+    
+    // ✅ CRITICAL: Filter bookings to only include those with valid providerId BEFORE the loop
+    const validBookings = filterBookingsByProviderId(bookings, requireProviderId);
     
     const slots = [];
     for (let hour = startHour; hour < endHour; hour++) {
@@ -756,10 +810,8 @@ export async function generateAvailableSlots(date, durationMin, providerId, opti
           continue;
         }
         
-        // Check for conflicts
-        const hasConflict = bookings.some(booking => {
-          if (booking.status === 'canceled') return false;
-          
+        // Check for conflicts (only with valid bookings)
+        const hasConflict = validBookings.some(booking => {
           const bookingStart = new Date(booking.start);
           const bookingEnd = new Date(booking.end);
           
