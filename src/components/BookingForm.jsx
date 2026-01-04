@@ -495,6 +495,8 @@ function BookingForm() {
         phone: formData.phone || 'empty',
         partySize: partySizeValue,
         partySizeType: typeof partySizeValue,
+        notes: formData.notes || 'empty',
+        specialRequests: formData.specialRequests || 'empty',
         isRestaurant: isRestaurant
       });
       
@@ -507,6 +509,8 @@ function BookingForm() {
         email: formData.email,
         phone: formData.phone,
         partySize: isRestaurant ? (Number(formData.guests) || 1) : undefined, // ✅ Include partySize for restaurants (ensure it's a number)
+        notes: formData.notes || undefined, // ✅ Include notes
+        specialRequests: formData.specialRequests || undefined, // ✅ Include special requests
         productIds: selectedProducts.length > 0 ? selectedProducts : undefined, // ✅ Include selected product IDs
         status: 'confirmed'
       })
