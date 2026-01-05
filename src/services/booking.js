@@ -774,6 +774,8 @@ export function isDayFullyBooked(date, bookings, providers, settings, slotDurati
 
 /**
  * Check if a time slot is available
+ * ⚠️ NOTE: This function does not apply buffer times. For accurate availability checking
+ * with buffer times, use generateTimeSlots() or the backend /api/system/booking/available-slots endpoint.
  * @param {Date} start - Start time
  * @param {Date} end - End time
  * @param {string} providerId - Provider ID
@@ -788,12 +790,12 @@ export async function checkAvailability(start, end, providerId) {
     const requireProviderId = providerId != null && providerId !== '';
     const validBookings = filterBookingsByProviderId(bookings, requireProviderId);
     
-    // Check for conflicts
+    // Check for conflicts (without buffer times - this is a simple conflict check)
     const hasConflict = validBookings.some(booking => {
       const bookingStart = new Date(booking.start);
       const bookingEnd = new Date(booking.end);
       
-      // Check for overlap
+      // Check for overlap (basic check without buffer times)
       return (start < bookingEnd && end > bookingStart);
     });
     
@@ -808,10 +810,13 @@ export async function checkAvailability(start, end, providerId) {
  * Generate time slots based on opening hours and existing bookings
  * ✅ CRITICAL: Use settings parameter for opening hours (no hardcoded values)
  * ✅ CRITICAL: Only bookings with valid providerId block slots
+ * ✅ CRITICAL: Applies buffer times from settings.bufferTimes (afterBooking + betweenBookings)
+ *   Buffer times are applied AFTER booking ends - next available slot will be after buffer time
  * @param {Date} date - Date to generate slots for
  * @param {number} durationMin - Duration in minutes
  * @param {Array} existingBookings - Array of existing bookings (already filtered for canceled)
  * @param {Object} settings - Booking settings object (from fetchBookingSettings)
+ *   Should include bufferTimes: { afterBooking: number, betweenBookings: number }
  * @param {boolean} requireProviderId - If true, filter out bookings without valid providerId (default: true)
  * @returns {Array} Array of available time slots
  */
@@ -920,11 +925,26 @@ export function generateTimeSlots(date, durationMin, existingBookings, settings 
         }
       }
       
+      // ✅ CRITICAL: Get buffer times from settings and apply them when checking conflicts
+      // Buffer times: afterBooking (buffer after booking ends) + betweenBookings (buffer between bookings)
+      const bufferTimes = settings?.bufferTimes || {};
+      const afterBuffer = bufferTimes.afterBooking || 0;
+      const betweenBuffer = bufferTimes.betweenBookings || 0;
+      const totalAfterBuffer = afterBuffer + betweenBuffer;
+      
       // ✅ CRITICAL: Check for conflicts with existing bookings (only valid ones)
+      // Apply buffer time AFTER booking ends (bufferedBookingEnd = bookingEnd + totalAfterBuffer)
       const hasConflict = validBookings.some(booking => {
         const bookingStart = new Date(booking.start);
         const bookingEnd = new Date(booking.end);
-        return (slotStart < bookingEnd && slotEnd > bookingStart);
+        
+        // ✅ Apply buffer time AFTER booking ends
+        const bufferedBookingEnd = new Date(
+          bookingEnd.getTime() + (totalAfterBuffer * 60 * 1000)
+        );
+        
+        // ✅ Check if slot overlaps with buffered booking time
+        return (slotStart < bufferedBookingEnd && slotEnd > bookingStart);
       });
       
       // ✅ CRITICAL: Only add slots that are NOT booked (no conflicts)
@@ -998,12 +1018,26 @@ export async function generateAvailableSlots(date, durationMin, providerId, opti
           continue;
         }
         
+        // ✅ CRITICAL: Get buffer times from options/settings and apply them
+        // For backward compatibility, try to get bufferTimes from options or settings
+        const bufferTimes = options?.bufferTimes || settings?.bufferTimes || {};
+        const afterBuffer = bufferTimes.afterBooking || 0;
+        const betweenBuffer = bufferTimes.betweenBookings || 0;
+        const totalAfterBuffer = afterBuffer + betweenBuffer;
+        
         // Check for conflicts (only with valid bookings)
+        // ✅ Apply buffer time AFTER booking ends
         const hasConflict = validBookings.some(booking => {
           const bookingStart = new Date(booking.start);
           const bookingEnd = new Date(booking.end);
           
-          return (slotStart < bookingEnd && slotEnd > bookingStart);
+          // ✅ Apply buffer time AFTER booking ends
+          const bufferedBookingEnd = new Date(
+            bookingEnd.getTime() + (totalAfterBuffer * 60 * 1000)
+          );
+          
+          // ✅ Check if slot overlaps with buffered booking time
+          return (slotStart < bufferedBookingEnd && slotEnd > bookingStart);
         });
         
         if (!hasConflict) {
